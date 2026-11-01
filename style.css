@@ -497,6 +497,57 @@ a {
   background: #fafbfe;
 }
 
+
+/* =====================================
+   전체 기록 테이블 스크롤
+===================================== */
+
+.records-table-wrap {
+  width: 100%;
+  max-height: 500px;
+
+  /* 가로 + 세로 스크롤 */
+  overflow-x: auto;
+  overflow-y: auto;
+
+  /* 스크롤 영역 디자인 */
+  border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* 테이블 너비 유지 */
+.student-records-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* 스크롤해도 제목 행 고정 */
+.student-records-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+
+/* 스크롤바 디자인 */
+.records-table-wrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.records-table-wrap::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.records-table-wrap::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+
 /* 기록 구분 표시 */
 
 .type-badge {
