@@ -511,261 +511,221 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-/* ==============================
-   선도부원 관리
-============================== */
+/* ========================================
+   상벌점 업로드
+======================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const dateInput = document.getElementById("criteria-start-date");
+  const fileInput = document.getElementById("criteria-excel");
+  const uploadBtn = document.getElementById("criteria-upload-btn");
+  const status = document.getElementById("criteria-upload-status");
 
-let prefectsData = [];
-let pendingPrefects = [];
-
-// HTML 특수문자 처리
-function prefectsEscape(value) {
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[ch]);
-}
-
-// 엑셀 읽기
-async function readPrefectsExcel(file) {
-  if (typeof XLSX === "undefined") {
-    throw new Error("엑셀 라이브러리를 불러오지 못했습니다.");
-  }
-
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
-
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-  const rows = XLSX.utils.sheet_to_json(sheet, {
-    defval: "",
-    raw: false
-  });
-
-  if (!rows.length) {
-    throw new Error("엑셀 파일에 데이터가 없습니다.");
-  }
-
-  const required = ["학년도", "학년", "반", "번호", "이름", "역할"];
-
-  for (const column of required) {
-    if (!Object.hasOwn(rows[0], column)) {
-      throw new Error(`엑셀에 '${column}' 열이 없습니다.`);
-    }
-  }
-
-  const members = rows.map((row, index) => {
-    const year = String(row["학년도"]).trim();
-    const grade = String(row["학년"]).trim();
-    const classNo = String(row["반"]).trim();
-    const number = String(row["번호"]).trim();
-    const name = String(row["이름"]).trim();
-    const role = String(row["역할"]).trim();
-
-    if (!year || !grade || !classNo || !number || !name) {
-      throw new Error(`${index + 2}행: 필수 정보가 비어 있습니다.`);
-    }
-
-    if (!["선도부", "교사"].includes(role)) {
-      throw new Error(`${index + 2}행: 역할을 확인하세요.`);
-    }
-
-    return {
-      year,
-      grade,
-      classNo,
-      number,
-      name,
-      role,
-      key: "",
-      status: "사용"
-    };
-  });
-
-  const ids = members.map(member =>
-    [
-      member.year,
-      member.grade,
-      member.classNo,
-      member.number
-    ].join("-")
-  );
-
-  if (new Set(ids).size !== ids.length) {
-    throw new Error("엑셀에 중복된 학번이 있습니다.");
-  }
-
-  return members;
-}
-
-// 명단 표시
-function renderPrefects() {
-  const tbody = document.getElementById("prefects-table-body");
-  const count = document.getElementById("prefects-result-count");
-  const yearFilter = document.getElementById("prefects-year-filter");
-  const statusFilter = document.getElementById("prefects-status-filter");
-  const search = document.getElementById("prefects-search");
-
-  if (!tbody || !yearFilter) return;
-
-  const selectedYear = yearFilter.value;
-
-  const years = [...new Set(prefectsData.map(p => p.year))]
-    .sort((a, b) => b.localeCompare(a));
-
-  yearFilter.replaceChildren(
-    new Option("전체 학년도", "all")
-  );
-
-  years.forEach(year => {
-    yearFilter.add(new Option(`${year}학년도`, year));
-  });
-
-  yearFilter.value = years.includes(selectedYear)
-    ? selectedYear
-    : "all";
-
-  const selectedStatus = statusFilter.value;
-  const keyword = search.value.trim().toLowerCase();
-
-  const filtered = prefectsData.filter(member => {
-    const matchYear =
-      yearFilter.value === "all" ||
-      member.year === yearFilter.value;
-
-    const matchStatus =
-      selectedStatus === "all" ||
-      member.status === selectedStatus;
-
-    const matchName =
-      member.name.toLowerCase().includes(keyword);
-
-    return matchYear && matchStatus && matchName;
-  });
-
-  count.textContent = `조회 결과 ${filtered.length}명`;
-
-  if (!filtered.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" class="prefects-empty">
-          조회된 선도부원이 없습니다.
-        </td>
-      </tr>
-    `;
+  if (!dateInput || !fileInput || !uploadBtn || !status) {
+    console.error("상벌점 기준 업로드 HTML 요소가 없습니다.");
     return;
   }
 
-  tbody.innerHTML = filtered.map(member => {
-    const active = member.status === "사용";
+  if (!dateInput.value) {
+    const now = new Date();
+    const localDate = new Date(
+      now.getTime() - now.getTimezoneOffset() * 60000
+    );
 
-    const statusClass = active ? "active" : "ended";
+    dateInput.value = localDate.toISOString().slice(0, 10);
+  }
 
-    const keyText = member.key
-      ? '<span class="prefects-key-issued">발급완료</span>'
-      : '<span class="prefects-key-pending">미발급</span>';
+  uploadBtn.addEventListener("click", () => {
+    if (!dateInput.value) {
+      alert("적용 시작일을 선택해 주세요.");
+      return;
+    }
 
-    return `
-      <tr>
-        <td>${prefectsEscape(member.year)}</td>
-        <td>${prefectsEscape(member.grade)}</td>
-        <td>${prefectsEscape(member.classNo)}</td>
-        <td>${prefectsEscape(member.number)}</td>
-        <td>${prefectsEscape(member.name)}</td>
-        <td>${prefectsEscape(member.role)}</td>
-        <td>${keyText}</td>
-        <td>
-          <span class="prefects-status ${statusClass}">
-            ${prefectsEscape(member.status)}
-          </span>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-// 업로드 화면 초기화
-function resetPrefectsUpload() {
-  pendingPrefects = [];
-
-  document.getElementById("prefects-file").value = "";
-  document.getElementById("prefects-upload-preview").hidden = true;
-}
-
-// 이벤트
-document.addEventListener("DOMContentLoaded", () => {
-  const fileInput = document.getElementById("prefects-file");
-  const preview = document.getElementById("prefects-upload-preview");
-  const fileName = document.getElementById("prefects-selected-file");
-  const uploadCount = document.getElementById("prefects-upload-count");
-
-  const confirm = document.getElementById("prefects-confirm-upload");
-  const cancel = document.getElementById("prefects-cancel-upload");
-
-  const yearFilter = document.getElementById("prefects-year-filter");
-  const statusFilter = document.getElementById("prefects-status-filter");
-  const search = document.getElementById("prefects-search");
-
-  if (!fileInput) return;
+    fileInput.click();
+  });
 
   fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
+    const file = fileInput.files?.[0];
     if (!file) return;
 
+    uploadBtn.disabled = true;
+
     try {
-      pendingPrefects = await readPrefectsExcel(file);
+      if (typeof XLSX === "undefined") {
+        throw new Error("엑셀 라이브러리가 로드되지 않았습니다.");
+      }
 
-      fileName.textContent = file.name;
-      uploadCount.textContent =
-        `${pendingPrefects.length}명 등록 예정`;
+      status.textContent = "엑셀 파일을 읽는 중입니다.";
 
-      preview.hidden = false;
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        defval: "",
+        raw: false
+      });
+
+      if (!rows.length) {
+        throw new Error("엑셀에 등록할 항목이 없습니다.");
+      }
+
+      const criteria = rows.map((row, index) => {
+        const type = String(row["구분"] || "").trim();
+        const reason = String(row["사유"] || "").trim();
+        const rawScore = row["점수"];
+
+        if (
+          !type ||
+          !reason ||
+          rawScore === "" ||
+          rawScore == null
+        ) {
+          throw new Error(
+            `엑셀 ${index + 2}행에 빈 항목이 있습니다.`
+          );
+        }
+
+        const score = Number(rawScore);
+
+        if (!["상점", "벌점", "상쇄점"].includes(type)) {
+          throw new Error(
+            `엑셀 ${index + 2}행: 구분 오류`
+          );
+        }
+
+        if (!Number.isInteger(score) || score === 0) {
+          throw new Error(
+            `엑셀 ${index + 2}행: 점수 오류`
+          );
+        }
+
+        return {
+          type,
+          reason,
+          score
+        };
+      });
+
+      const confirmed = confirm(
+        `파일: ${file.name}\n` +
+        `적용 시작일: ${dateInput.value}\n` +
+        `등록 항목: ${criteria.length}개\n\n` +
+        "이 기준을 Google Sheets에 등록할까요?"
+      );
+
+      if (!confirmed) {
+        status.textContent = "업로드가 취소되었습니다.";
+        return;
+      }
+
+      status.textContent = "Google Sheets에 저장 중입니다.";
+
+      const result = await uploadCriteriaToGAS(
+        criteria,
+        dateInput.value
+      );
+
+      status.textContent =
+        `저장 완료: ${result.saved}개 항목`;
+
+      alert(
+        `상벌점 기준 ${result.saved}개가 저장되었습니다.\n` +
+        `시작 행: ${result.startRow}`
+      );
 
     } catch (error) {
-      alert(error.message);
-      resetPrefectsUpload();
+      console.error("상벌점 기준 업로드 오류:", error);
+
+      status.textContent = "오류: " + error.message;
+
+      alert("업로드 실패: " + error.message);
+
+    } finally {
+      fileInput.value = "";
+      uploadBtn.disabled = false;
     }
   });
-
-  confirm.addEventListener("click", () => {
-    if (!pendingPrefects.length) return;
-
-    const approved = confirmPrefectsReplacement();
-
-    if (!approved) return;
-
-    // 현재는 브라우저 화면에서만 반영
-    prefectsData = [
-      ...prefectsData.map(member => ({
-        ...member,
-        status: "종료"
-      })),
-      ...pendingPrefects
-    ];
-
-    resetPrefectsUpload();
-    renderPrefects();
-
-    alert("명단이 화면에 반영되었습니다.");
-  });
-
-  cancel.addEventListener("click", resetPrefectsUpload);
-
-  yearFilter.addEventListener("change", renderPrefects);
-  statusFilter.addEventListener("change", renderPrefects);
-  search.addEventListener("input", renderPrefects);
-
-  renderPrefects();
 });
 
-// 기존 명단 종료 여부 확인
-function confirmPrefectsReplacement() {
-  return window.confirm(
-    "새 명단을 등록하면 기존 사용 명단은 종료 상태로 변경됩니다. 계속할까요?"
-  );
+// 상벌점 업로드
+function uploadCriteriaToGAS(criteria, startDate) {
+  return new Promise((resolve, reject) => {
+
+    const nonce = crypto.randomUUID();
+    const iframe = document.createElement("iframe");
+    const form = document.createElement("form");
+    const input = document.createElement("input");
+
+    iframe.name = "criteria_" + nonce.replaceAll("-", "");
+    iframe.hidden = true;
+
+    form.method = "POST";
+    form.action = GAS_URL;
+    form.target = iframe.name;
+    form.hidden = true;
+
+    input.type = "hidden";
+    input.name = "packet";
+    input.value = JSON.stringify({
+      action: "saveCriteriaTest",
+      payload: { criteria, startDate },
+      nonce,
+      replyOrigin: location.origin
+    });
+
+    form.appendChild(input);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      window.removeEventListener("message", receive);
+      form.remove();
+      iframe.remove();
+    }
+
+    function receive(event) {
+      let host;
+
+      try {
+        const url = new URL(event.origin);
+        if (url.protocol !== "https:") return;
+        host = url.hostname;
+      } catch {
+        return;
+      }
+
+      if (
+        host !== "script.google.com" &&
+        host !== "script.googleusercontent.com" &&
+        !host.endsWith("-script.googleusercontent.com")
+      ) return;
+
+      const result = event.data;
+
+      if (
+        result?.channel !== "criteria-upload-v1" ||
+        result.nonce !== nonce
+      ) return;
+
+      cleanup();
+
+      if (result.ok) {
+        resolve(result.data);
+      } else {
+        reject(new Error(result.error || "저장 실패"));
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("서버 응답 시간 초과"));
+    }, 45000);
+
+    window.addEventListener("message", receive);
+
+    document.body.append(iframe, form);
+    form.submit();
+  });
 }
 
 
@@ -897,34 +857,14 @@ function validStudentRecord(record) {
 
 // 학생별 점수 계산
 function calculateStudentPoints(student) {
-  const result = {
-    merit: 0,
-    demerit: 0,
-    offset: 0,
+  return {
+    merit: Number(student.merit) || 0,
+    demerit: Number(student.demerit) || 0,
+    offset: Number(student.offset) || 0,
+    total: Number(student.total) || 0,
+    classScore: Number(student.classScore) || 0,
     count: 0
   };
-
-  const records = teacherRecords.filter(record =>
-    record.studentId === student.id &&
-    validStudentRecord(record)
-  );
-
-  for (const record of records) {
-    const criterion = teacherCriteria.find(
-      item => item.code === record.code
-    );
-
-    const type = record.type || criterion?.type;
-    const points = Math.abs(Number(record.score) || 0);
-
-    if (type === "상점") result.merit += points;
-    if (type === "벌점") result.demerit += points;
-    if (type === "상쇄점") result.offset += points;
-
-    result.count++;
-  }
-
-  return result;
 }
 
 // 검색 조건 적용
@@ -1092,10 +1032,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("click", resetTeacherStudentSearch);
 
   document.getElementById("students-refresh")
-    ?.addEventListener("click", () => {
-      renderTeacherStudents();
-      renderTeacherSummary();
-    });
+    ?.addEventListener("click", loadTeacherStudents);
 
   ["students-search", "students-number"].forEach(id => {
     document.getElementById(id)
@@ -1121,4 +1058,101 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+async function loadTeacherStudents() {
+  const tbody = document.getElementById("students-table-body");
 
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8">학생 데이터를 불러오는 중입니다.</td>
+    </tr>
+  `;
+
+  try {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("action", "teacherStudents");
+    url.searchParams.set("_", Date.now());
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "학생 조회 실패");
+    }
+
+    // 기존 대상자 관리 기능에 데이터 전달
+    setTeacherStudentData(data);
+
+    console.log("학생 데이터 연결 성공:", {
+      students: teacherStudents.length,
+      criteria: teacherCriteria.length,
+      records: teacherRecords.length
+    });
+
+  } catch (error) {
+    console.error("대상자 관리 오류:", error);
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8">
+          학생 데이터를 불러오지 못했습니다.
+        </td>
+      </tr>
+    `;
+
+    alert("학생 데이터 조회 실패: " + error.message);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadTeacherStudents();
+});
+
+
+function uploadPrefectsToGAS(users) {
+  return new Promise((resolve, reject) => {
+    const callbackName =
+      "prefectCallback_" + Math.random().toString(36).slice(2);
+
+    const script = document.createElement("script");
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("서버 응답 시간이 초과되었습니다."));
+    }, 30000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (result) => {
+      cleanup();
+      resolve(result);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("서버 연결에 실패했습니다."));
+    };
+
+    script.src =
+      GAS_URL +
+      "?action=importPrefects" +
+      "&callback=" + encodeURIComponent(callbackName) +
+      "&users=" + encodeURIComponent(JSON.stringify(users));
+
+    document.body.appendChild(script);
+  });
+}
