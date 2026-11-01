@@ -1,0 +1,1433 @@
+
+/* ========================================
+   1. 기본 설정 및 공통 색상
+======================================== */
+
+:root {
+  --primary: #4263eb;
+  --primary-light: #eef2ff;
+
+  --background: #f7f8fc;
+  --surface: #ffffff;
+
+  --text: #202638;
+  --text-secondary: #687386;
+  --border: #e6e9f0;
+
+  --reward: #16835d;
+  --reward-light: #e9f8f0;
+
+  --penalty: #dc4b56;
+  --penalty-light: #fff0f1;
+
+  --sidebar-width: 250px;
+  --radius: 14px;
+
+  --shadow: 0 3px 14px rgba(30, 41, 59, 0.035);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: "Pretendard", "Noto Sans KR",
+    -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ========================================
+   2. 전체 레이아웃
+======================================== */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-layout {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+}
+
+.main-content {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 32px 38px 60px;
+}
+
+/* ========================================
+   3. 왼쪽 사이드바
+======================================== */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  width: var(--sidebar-width);
+  padding: 28px 16px;
+
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.brand {
+  padding: 0 14px 30px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+}
+
+.brand p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+  padding: 10px 14px;
+
+  border-radius: 9px;
+  color: var(--text-secondary);
+  font-weight: 550;
+
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-link:hover {
+  background: #f4f6fb;
+  color: var(--text);
+}
+
+.nav-link.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ========================================
+   4. 상단 바
+======================================== */
+
+.topbar {
+  height: 70px;
+  padding: 0 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+#refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 36px;
+  padding: 0 16px;
+
+  background: white;
+  color: var(--text);
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+#refresh-button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: #cbd5ff;
+}
+
+#refresh-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   5. 홈 페이지 제목
+======================================== */
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 1.5px;
+}
+
+.page-heading h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -1px;
+}
+
+.page-heading p:not(.eyebrow) {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+#last-updated {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ========================================
+   6. 주요 통계 카드
+======================================== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  min-width: 0;
+  padding: 24px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.stat-card h3 {
+  margin: 0 0 15px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 30px;
+  line-height: 1.3;
+  font-weight: 750;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card p {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 카드별 강조 색상 */
+
+.stat-card:nth-child(2) strong {
+  color: var(--reward);
+}
+
+.stat-card:nth-child(3) strong {
+  color: var(--penalty);
+}
+
+/* ========================================
+   7. 공통 패널
+======================================== */
+
+.panel {
+  margin-bottom: 24px;
+  padding: 26px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+.panel-heading h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.panel-heading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.more-link {
+  flex-shrink: 0;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.more-link:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   8. 최근 14일 그래프
+======================================== */
+
+.chart-area {
+  position: relative;
+  width: 100%;
+  min-height: 270px;
+  overflow: hidden;
+}
+
+/* JS에서 SVG 그래프를 삽입할 경우 */
+
+.chart-area svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 240px;
+}
+
+/* JS에서 HTML 막대그래프를 삽입할 경우 */
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+
+  height: 240px;
+  padding: 15px 0 25px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-day {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+
+  height: 100%;
+  min-width: 0;
+}
+
+.chart-day-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+
+  width: 100%;
+  height: 100%;
+}
+
+.chart-bar {
+  width: 15px;
+  max-width: 45%;
+  min-height: 0;
+
+  border-radius: 5px 5px 0 0;
+  transition: height 0.25s ease;
+}
+
+.chart-bar.reward {
+  background: var(--reward);
+}
+
+.chart-bar.penalty {
+  background: var(--penalty);
+}
+
+.chart-label {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.legend-dot.reward {
+  background: var(--reward);
+}
+
+.legend-dot.penalty {
+  background: var(--penalty);
+}
+
+/* ========================================
+   9. 최근 상벌점 기록 테이블
+======================================== */
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.records-table thead {
+  background: #f8f9fc;
+}
+
+.records-table th {
+  padding: 14px 16px;
+
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.records-table td {
+  padding: 15px 16px;
+
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.records-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.records-table tbody tr:hover {
+  background: #fafbfe;
+}
+
+/* 기록 구분 표시 */
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 3px 10px;
+  border-radius: 6px;
+
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.type-badge.reward {
+  background: var(--reward-light);
+  color: var(--reward);
+}
+
+.type-badge.penalty {
+  background: var(--penalty-light);
+  color: var(--penalty);
+}
+
+.score-reward {
+  color: var(--reward);
+  font-weight: 700;
+}
+
+.score-penalty {
+  color: var(--penalty);
+  font-weight: 700;
+}
+
+
+/* ========================================
+   대상자 관리
+======================================== */
+
+.students-page[hidden] {
+  display: none !important;
+}
+
+.students-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.students-page-header h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+
+.students-page-header p:not(.eyebrow) {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.students-btn-primary,
+.students-btn-outline {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.students-btn-primary {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+}
+
+.students-btn-primary:hover {
+  background: #3651cf;
+}
+
+.students-btn-outline {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.students-btn-outline:hover {
+  background: #f5f7fb;
+}
+
+/* 요약 통계 */
+
+.students-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.students-stat {
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.students-stat span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.students-stat strong {
+  font-size: 29px;
+  font-weight: 750;
+}
+
+.students-stat:nth-child(2) strong {
+  color: var(--reward);
+}
+
+.students-stat:nth-child(3) strong {
+  color: var(--penalty);
+}
+
+/* 공통 패널 */
+
+.students-panel {
+  margin-bottom: 24px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.students-panel-heading h3,
+.students-list-heading h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.students-panel-heading p,
+.students-list-heading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 검색 */
+
+.students-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.students-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 110px;
+}
+
+.students-name-field {
+  flex: 1;
+  min-width: 180px;
+}
+
+.students-field label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.students-field input,
+.students-field select,
+.students-field textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+}
+
+.students-field input:focus,
+.students-field select:focus,
+.students-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(66,99,235,.1);
+}
+
+/* 학생 목록 */
+
+.students-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.students-result-count {
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.students-table-wrap {
+  overflow-x: auto;
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.students-table th {
+  padding: 14px 16px;
+  background: #f8f9fc;
+  color: var(--text-secondary);
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.students-table td {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.students-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.students-table td:nth-child(4) {
+  font-weight: 700;
+}
+
+.students-score-reward {
+  color: var(--reward);
+  font-weight: 700;
+}
+
+.students-score-penalty {
+  color: var(--penalty);
+  font-weight: 700;
+}
+
+.students-score-offset {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.students-reward-btn {
+  padding: 7px 13px;
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.students-reward-btn:hover {
+  background: #dfe6ff;
+}
+
+.students-empty {
+  padding: 50px 20px !important;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* 상점 부여 팝업 */
+
+.reward-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  box-shadow: 0 20px 60px rgba(20,30,60,.18);
+  overflow-y: auto;
+}
+
+.reward-dialog::backdrop {
+  background: rgba(20,30,50,.5);
+}
+
+.reward-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reward-dialog-header h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.reward-dialog-header p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.reward-close {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  font-size: 25px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.reward-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.reward-student-info {
+  padding: 16px;
+  border-radius: 9px;
+  background: #f5f7fc;
+}
+
+.reward-student-info span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.reward-student-info strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+.reward-student-info p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.reward-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--border);
+}
+
+/* 반응형 */
+
+@media (max-width: 800px) {
+  .students-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .students-table {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 500px) {
+  .students-page-header {
+    align-items: flex-start;
+  }
+
+  .students-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .students-panel {
+    padding: 18px;
+  }
+
+  .students-filters > button {
+    flex: 1;
+  }
+
+  .students-list-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* ========================================
+   기록 내역 페이지
+======================================== */
+
+.records-page {
+  width: 100%;
+}
+
+.records-page[hidden] {
+  display: none !important;
+}
+
+/* 페이지 제목 */
+
+.records-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 26px;
+}
+
+.records-eyebrow {
+  margin: 0 0 5px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 1.5px;
+}
+
+.records-page-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -1px;
+}
+
+.records-page-header p:not(.records-eyebrow) {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.records-refresh-btn,
+.records-reset-btn {
+  padding: 10px 17px;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.records-refresh-btn:hover,
+.records-reset-btn:hover {
+  background: #f4f6fb;
+}
+
+/* 검색 패널 */
+
+.records-filter-panel,
+.records-list-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+
+.records-filter-panel {
+  padding: 24px;
+}
+
+.records-filter-heading h3,
+.records-list-heading h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.records-filter-heading p,
+.records-list-heading p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.records-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.records-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 130px;
+}
+
+.records-search-field {
+  flex: 1;
+  min-width: 210px;
+}
+
+.records-filter-field label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.records-filter-field input,
+.records-filter-field select {
+  height: 42px;
+  width: 100%;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+}
+
+.records-filter-field input:focus,
+.records-filter-field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(66, 99, 235, 0.08);
+}
+
+.records-search-btn {
+  height: 42px;
+  padding: 0 23px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 650;
+}
+
+.records-search-btn:hover {
+  background: #3651cf;
+}
+
+.records-reset-btn {
+  height: 42px;
+}
+
+/* 학생 목록 */
+
+.records-list-panel {
+  overflow: hidden;
+}
+
+.records-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  gap: 15px;
+}
+
+.records-count {
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.records-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.student-records-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.student-records-table thead {
+  background: #f8f9fc;
+}
+
+.student-records-table th {
+  padding: 15px 16px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.student-records-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-records-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.student-records-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 이름 강조 */
+
+.student-records-table td:nth-child(4) {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* 점수 색상 */
+
+.records-score-positive {
+  color: var(--reward);
+  font-weight: 700;
+}
+
+.records-score-negative {
+  color: var(--penalty);
+  font-weight: 700;
+}
+
+.records-score-neutral {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.records-score-total {
+  color: var(--primary);
+  font-weight: 750;
+}
+
+/* 데이터 없음 */
+
+.records-empty {
+  padding: 65px 20px !important;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* 테이블 하단 */
+
+.records-list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.records-list-footer p,
+.records-list-footer span {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 점수 계산 안내 */
+
+.records-guide {
+  padding: 24px;
+  background: #f0f3ff;
+  border: 1px solid #e0e6ff;
+  border-radius: var(--radius);
+}
+
+.records-guide h3 {
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.records-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.records-guide-grid > div {
+  padding: 16px;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.records-guide-grid strong {
+  display: block;
+  font-size: 13px;
+}
+
+.records-guide-grid p {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.records-guide-note {
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 반응형 */
+
+@media (max-width: 800px) {
+  .records-page-header {
+    align-items: flex-start;
+  }
+
+  .records-filter-row {
+    gap: 10px;
+  }
+
+  .records-search-field {
+    flex-basis: 100%;
+  }
+
+  .records-list-heading {
+    padding: 18px;
+  }
+
+  .student-records-table {
+    min-width: 850px;
+  }
+
+  .records-guide-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .records-page-header h2 {
+    font-size: 24px;
+  }
+
+  .records-filter-panel,
+  .records-guide {
+    padding: 18px;
+  }
+
+  .records-filter-field {
+    flex: 1;
+  }
+
+  .records-search-btn,
+  .records-reset-btn {
+    flex: 1;
+  }
+
+  .records-list-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+
+/* ========================================
+   10. 데이터 없음 / 로딩 표시
+======================================== */
+
+.empty-message {
+  padding: 45px 20px !important;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
+
+.chart-area > .empty-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 270px;
+  margin: 0;
+}
+
+/* ========================================
+   11. 키보드 접근성
+======================================== */
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(66, 99, 235, 0.3);
+  outline-offset: 3px;
+}
+
+/* ========================================
+   12. 태블릿 화면
+======================================== */
+
+@media (max-width: 1100px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .main-content {
+    padding: 28px 24px 50px;
+  }
+
+  .topbar {
+    padding: 0 24px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ========================================
+   13. 모바일 화면
+======================================== */
+
+@media (max-width: 700px) {
+  .app-layout {
+    display: block;
+  }
+
+  .sidebar {
+    position: relative;
+    width: 100%;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    padding: 0 4px 14px;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 5px;
+    margin-top: 14px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .nav-link {
+    flex-shrink: 0;
+    min-height: 36px;
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .main-layout {
+    margin-left: 0;
+  }
+
+  .topbar {
+    height: 58px;
+    padding: 0 18px;
+  }
+
+  .main-content {
+    padding: 24px 16px 40px;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-heading h2 {
+    font-size: 24px;
+  }
+
+  .stats-grid {
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  .stat-card strong {
+    font-size: 25px;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+
+  .panel-heading h3 {
+    font-size: 15px;
+  }
+
+  .chart-area {
+    overflow-x: auto;
+  }
+
+  .chart-bars {
+    min-width: 540px;
+  }
+
+  .records-table {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 380px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* 숨김 처리된 페이지는 표시하지 않음 */
+[hidden] {
+  display: none !important;
+}
