@@ -327,9 +327,18 @@
               </p>
             </div>
 
-            <label class="criteria-upload-button" for="criteria-file">
-              <span>엑셀 파일 선택</span>
-            </label>
+            <div class="criteria-upload-controls">
+              <label for="criteria-start-date">적용 시작일</label>
+              <input type="date" id="criteria-start-date">
+
+              <input type="file" id="criteria-excel" accept=".xlsx,.xls" hidden>
+
+              <button type="button" id="criteria-upload-btn">
+                엑셀 파일 선택
+              </button>
+
+              <p id="criteria-upload-status"></p>
+            </div>
 
             <input id="criteria-file" type="file" accept=".xlsx,.xls" hidden />
 
