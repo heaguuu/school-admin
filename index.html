@@ -1,220 +1,594 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f8ff">
-  <title>생활지도 관리 · QR 상벌점 등록</title>
-  <link rel="stylesheet" href="./style.css?v=mobile-1">
-  <script defer src="./jsQR.js?v=1.4.0"></script>
-  <script defer src="./app.js?v=mobile-1"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생활지도 관리 | 홈</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js" defer></script>
 </head>
 
 <body>
-  <div class="phone-app">
-    <!--로그인-->
-    <section id="loginScreen" class="login-screen">
-      <div class="login-panel">
-        <div class="login-icon">✓</div>
-        <h1>선도부원 로그인</h1>
-        <p>학번과 발급받은 인증키를 입력하세요.</p>
-
-        <form id="loginForm">
-          <div class="login-number-row">
-            <label>
-              학년
-              <select id="loginGrade" required>
-                <option value="">선택</option>
-                <option value="1">1학년</option>
-                <option value="2">2학년</option>
-                <option value="3">3학년</option>
-              </select>
-            </label>
-
-            <label>
-              반
-              <input id="loginClass" type="number" min="1" placeholder="반" required>
-            </label>
-
-            <label>
-              번호
-              <input id="loginNumber" type="number" min="1" placeholder="번호" required>
-            </label>
-          </div>
-
-          <label class="login-key-label">
-            6자리 인증키
-            <input id="loginKey" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off"
-              placeholder="인증키 입력" required>
-          </label>
-
-          <p id="loginError" role="alert"></p>
-
-          <button type="submit" id="loginButton">
-            로그인
-          </button>
-        </form>
-      </div>
-    </section>
-
-    <header class="phone-header">
-      <div class="brand-mark" aria-hidden="true">高</div>
-      <div><span class="eyebrow">SCHOOL MANAGEMENT</span>
+  <div class="app-layout">
+    <!-- 사이드바 -->
+    <aside class="sidebar">
+      <div class="brand">
         <h1>생활지도 관리</h1>
+        <p>상벌점 관리 시스템</p>
       </div>
-      <span class="test-badge">시범 운영</span>
-    </header>
-    <main class="phone-main">
-      <div id="scan-view">
-        <section class="welcome">
-          <span class="date-label">학생 생활지도</span>
-          <h2>학생 QR을 스캔하고<br>상벌점을 등록하세요.</h2>
-          <p>학생 확인부터 점수 등록까지 한 번에 처리할 수 있어요.</p>
-        </section>
-        <ol class="steps" aria-label="진행 단계">
-          <li id="step1" class="active" aria-current="step"><span>1</span> QR 스캔</li>
-          <li id="step2"><span>2</span> 항목 선택</li>
-          <li id="step3"><span>3</span> 저장 완료</li>
-        </ol>
 
-        <section id="scan-panel" class="card" aria-labelledby="scan-title">
-          <div class="card-heading">
-            <div class="scan-icon" aria-hidden="true">⌗</div>
+      <nav class="sidebar-nav">
+        <a href="#home" class="nav-link active">홈</a>
+        <a href="#students" class="nav-link">대상자 관리</a>
+        <a href="#records" class="nav-link">기록 내역</a>
+        <a href="#criteria" class="nav-link">상벌점 기준</a>
+        <a href="#prefects" class="nav-link">선도부원 관리</a>
+      </nav>
+    </aside>
+
+    <!-- 메인 화면 -->
+    <div class="main-layout">
+      <header class="topbar">
+        <div>
+          <span class="breadcrumb">생활지도 관리 / 홈</span>
+        </div>
+      </header>
+
+      <!--전체 화면-->
+      <main class="main-content">
+        <!--홈 페이지-->
+        <section id="home-page">
+          <section class="page-heading">
             <div>
-              <h2 id="scan-title">학생증 QR 스캔</h2>
-              <p>QR 코드 전체가 사각형 안에 보이도록 맞춰 주세요.</p>
+              <p class="eyebrow">DASHBOARD</p>
+              <h2>홈</h2>
+              <p>학교 상벌점 현황을 확인할 수 있습니다.</p>
             </div>
-          </div>
-          <div class="camera-wrap">
-            <video id="video" autoplay muted playsinline aria-label="QR 스캔 카메라"></video>
-            <div class="scan-frame" aria-hidden="true"></div>
-            <p id="camera-hint">카메라 대기 중</p>
-          </div>
-          <canvas id="canvas" hidden></canvas>
-          <button id="start" class="primary-button" type="button">QR 스캔 시작</button>
-          <button id="stop" class="secondary-button" type="button" hidden>카메라 종료</button>
-          <p class="help">휴대폰의 카메라 권한을 허용해 주세요.<br>학생명부의 QR식별값과 일치하는 학생을 조회합니다.</p>
-        </section>
-
-        <section id="loading-panel" class="card loading-card" aria-labelledby="loading-title" aria-busy="true" hidden>
-          <div class="spinner" aria-hidden="true"></div>
-          <h2 id="loading-title">학생을 확인하고 있어요</h2>
-          <p>QR 값으로 학생명부를 조회하고 있습니다.<br>잠시만 기다려 주세요.</p>
-        </section>
-
-        <section id="student-panel" class="card" aria-labelledby="student-title" hidden>
-          <div class="section-heading">
-            <h2 id="student-title">학생 확인 · 항목 선택</h2><span class="pill">QR 조회 완료</span>
-          </div>
-          <section class="student-info" aria-labelledby="student-name">
-            <div class="student-heading"><span class="student-avatar" aria-hidden="true">학생</span>
-              <div>
-                <h3 id="student-name">—</h3>
-                <p id="student-detail"></p>
-              </div>
-            </div>
-            <dl class="student-grid">
-              <div>
-                <dt>학년</dt>
-                <dd id="student-grade">—</dd>
-              </div>
-              <div>
-                <dt>반</dt>
-                <dd id="student-class">—</dd>
-              </div>
-              <div>
-                <dt>번호</dt>
-                <dd id="student-number">—</dd>
-              </div>
-            </dl>
-            <div class="student-id-line"><span>학년도</span><strong id="student-year">—</strong></div>
-            <div class="student-id-line"><span>QR식별값</span><strong id="student-qr">—</strong></div>
+            <span id="last-updated">업데이트 전</span>
           </section>
-          <fieldset id="criteria-fieldset">
-            <legend>등록할 상벌점 항목</legend>
-            <p class="field-help">학생과 항목을 확인한 뒤 저장해 주세요.</p>
-            <div id="criteria" class="criteria-list"></div>
-          </fieldset>
-          <p id="criteria-empty" class="help" hidden>사용 가능한 벌점 항목이 없습니다.</p>
-          <div id="selection-summary" class="selection-summary" hidden>
-            <div><span>선택 항목</span><strong id="selected-reason">—</strong></div>
-            <div><span>등록 점수</span><strong><span id="selected-score">—</span>점</strong></div>
-          </div>
-          <p id="limits" class="help"></p>
-          <button id="submit" class="primary-button" type="button" disabled>확인 · 시트에 저장</button>
-          <button id="rescan" class="secondary-button" type="button">다른 학생 QR 스캔</button>
-          <p class="help">요청자ID: <strong id="requester-id">—</strong><br>승인 절차 없이 시트에 바로 저장됩니다.</p>
+          <!-- 주요 통계 -->
+          <section class="stats-grid" aria-label="주요 통계">
+            <article class="stat-card">
+              <h3>전체 학생</h3><strong id="student-count">-</strong>
+              <p>현재 등록된 학생 수</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 상점</h3><strong id="monthly-reward">-</strong>
+              <p>이번 달 누적 상점</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 벌점</h3><strong id="monthly-penalty">-</strong>
+              <p>이번 달 누적 벌점</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 기록</h3><strong id="monthly-record-count">-</strong>
+              <p>이번 달 등록된 기록 수</p>
+            </article>
+          </section>
+
+          <section class="panel chart-panel"><!-- 최근 14일 그래프 -->
+            <div class="panel-heading">
+              <div>
+                <h3>최근 14일 상벌점 현황</h3>
+                <p>일자별 상점 및 벌점 변화를 확인합니다.</p>
+              </div>
+            </div>
+            <div id="records-chart" class="chart-area">
+              <p class="empty-message">그래프 데이터를 불러오는 중입니다.</p>
+            </div>
+          </section>
         </section>
 
-        <section id="done-panel" class="card result-card" aria-labelledby="done-title" hidden>
-          <div class="result-check" aria-hidden="true">✓</div>
-          <h2 id="done-title">상벌점 기록을 저장했어요</h2>
-          <p>학생 정보와 선택한 상벌점이 점수 부여 시트에 기록되었습니다.</p>
-          <dl class="receipt-details">
+        <!-- 기록 내역 페이지 -->
+        <section id="records-page" class="records-page" hidden>
+          <div class="records-page-header"> <!-- 페이지 제목 -->
             <div>
-              <dt>학생</dt>
-              <dd id="saved-student">—</dd>
+              <p class="records-eyebrow">STUDENT RECORDS</p>
+              <h2>기록 내역</h2>
+              <p>전체 학생의 상벌점 누계 현황을 조회합니다.</p>
             </div>
-            <div>
-              <dt>벌점 항목</dt>
-              <dd id="saved-reason">—</dd>
-            </div>
-            <div>
-              <dt>점수</dt>
-              <dd id="saved-score">—</dd>
-            </div>
-            <div>
-              <dt>요청자ID</dt>
-              <dd id="saved-requester">—</dd>
-            </div>
-          </dl>
-          <p id="receipt"></p>
-          <button id="again" class="primary-button" type="button">다음 학생 QR 스캔</button>
-        </section>
-      </div>
 
-      <!--전체 기록 페이지-->
-      <section id="records-view" hidden>
-        <div class="records-heading">
-          <div>
-            <span class="date-label">GOOGLE SHEETS</span>
-            <h2>전체 기록</h2>
-            <p>시트에 등록된 상벌점 내역을 확인합니다.</p>
+            <button type="button" id="records-refresh" class="records-refresh-btn">
+              새로고침
+            </button>
           </div>
-          <button id="refresh-records" class="refresh-button" type="button">
-            새로고침
-          </button>
-        </div>
 
-        <div class="record-filters">
-          <button type="button" class="record-filter active" data-period="today">오늘</button>
-          <button type="button" class="record-filter" data-period="week">최근 일주일</button>
-          <button type="button" class="record-filter" data-period="all">전체</button>
-        </div>
+          <!-- 검색 및 필터 -->
+          <section class="records-filter-panel">
+            <div class="records-filter-heading">
+              <h3>학생 조회</h3>
+              <p>이름 또는 학년·반을 기준으로 검색할 수 있습니다.</p>
+            </div>
 
-        <div id="record-count" class="record-count">
-          기록을 불러와 주세요.
-        </div>
+            <div class="records-filter-row">
+              <div class="records-filter-field records-search-field">
+                <label for="records-search">학생 검색</label>
+                <input type="search" id="records-search" placeholder="학생 이름 검색">
+              </div>
 
-        <div id="record-list" class="record-list"></div>
-      </section>
+              <div class="records-filter-field">
+                <label for="records-grade">학년</label>
+                <select id="records-grade">
+                  <option value="">전체 학년</option>
+                  <option value="1">1학년</option>
+                  <option value="2">2학년</option>
+                  <option value="3">3학년</option>
+                </select>
+              </div>
 
-      <p id="message" class="status-message" role="status" aria-live="polite" aria-atomic="true"></p>
-      <noscript>
-        <p class="status-message">QR 인식과 학생 조회에는 JavaScript가 필요합니다. 브라우저에서 JavaScript를 허용해 주세요.</p>
-      </noscript>
-    </main>
-    <nav class="main-tabs" aria-label="하단 메뉴">
-      <button type="button" id="tab-scan" class="tab active"><span class="tab-icon" aria-hidden="true">⌗</span><span>QR
-          등록</span></button>
-      <button type="button" id="tab-records" class="tab"><span class="tab-icon" aria-hidden="true">▤</span><span>전체
-          기록</span></button>
-    </nav>
-    <footer class="app-footer">
-      <p>카메라 영상은 저장하거나 전송하지 않습니다.</p><small>생활지도 관리 · 모바일 웹</small>
-    </footer>
+              <div class="records-filter-field">
+                <label for="records-class">반</label>
+                <select id="records-class">
+                  <option value="">전체 반</option>
+                </select>
+              </div>
+
+              <button type="button" id="records-search-btn" class="records-search-btn">
+                조회
+              </button>
+
+              <button type="button" id="records-reset-btn" class="records-reset-btn">
+                초기화
+              </button>
+            </div>
+          </section>
+
+
+          <!-- 상벌점 부여 기록 -->
+          <section class="records-list-panel">
+
+            <div class="records-list-heading">
+              <div>
+                <h3>상벌점 부여 기록</h3>
+                <p>최근 등록된 기록부터 표시됩니다.</p>
+              </div>
+
+              <span id="records-result-count" class="records-count">
+                조회 결과 0건
+              </span>
+            </div>
+
+            <div class="records-table-wrap">
+              <table class="student-records-table">
+                <thead>
+                  <tr>
+                    <th>학년도</th>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                    <th>항목코드</th>
+                    <th>점수</th>
+                    <th>요청일시</th>
+                    <th>요청자ID</th>
+                    <th>승인상태</th>
+                  </tr>
+                </thead>
+
+                <tbody id="student-records-body">
+                  <tr>
+                    <td colspan="10" class="records-empty">
+                      데이터를 불러오는 중입니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="records-list-footer">
+              <p>Google Sheets '점수 부여' 기준</p>
+              <span id="records-last-updated">업데이트 전</span>
+            </div>
+
+          </section>
+
+
+          <!-- 점수 계산 안내 -->
+          <section class="records-guide">
+            <h3>점수 계산 안내</h3>
+
+            <div class="records-guide-grid">
+              <div>
+                <strong>개인누계</strong>
+                <p>상점 합계 + 벌점 합계 + 상쇄점</p>
+              </div>
+
+              <div>
+                <strong>학급반영점수</strong>
+                <p>개인누계 − 상쇄점</p>
+              </div>
+            </div>
+
+            <p class="records-guide-note">
+              상쇄점은 개인누계에 포함되지만 학급반영점수에는 반영되지 않습니다.
+            </p>
+          </section>
+        </section>
+
+        <!-- 대상자 관리 페이지 -->
+        <section id="students-page" class="students-page" hidden>
+
+          <div class="students-page-header">
+            <div>
+              <p class="eyebrow">STUDENT MANAGEMENT</p>
+              <h2>대상자 관리</h2>
+              <p>학생별 상벌점 현황을 확인하고 상벌점을 등록합니다.</p>
+            </div>
+
+            <button type="button" id="students-refresh" class="students-btn-outline">
+              새로고침
+            </button>
+          </div>
+
+          <!-- 검색 -->
+          <section class="students-panel">
+            <div class="students-panel-heading">
+              <h3>학생 검색</h3>
+              <p>이름 또는 학년·반·번호로 학생을 조회합니다.</p>
+            </div>
+
+            <div class="students-filters">
+              <div class="students-field students-name-field">
+                <label for="students-search">이름</label>
+                <input type="search" id="students-search" placeholder="학생 이름 입력">
+              </div>
+
+              <div class="students-field">
+                <label for="students-grade">학년</label>
+                <select id="students-grade">
+                  <option value="">전체 학년</option>
+                  <option value="1">1학년</option>
+                  <option value="2">2학년</option>
+                  <option value="3">3학년</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="students-class">반</label>
+                <select id="students-class">
+                  <option value="">전체 반</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="students-number">번호</label>
+                <input type="number" id="students-number" min="1" placeholder="전체">
+              </div>
+
+              <button type="button" id="students-search-btn" class="students-btn-primary">
+                조회
+              </button>
+
+              <button type="button" id="students-reset-btn" class="students-btn-outline">
+                초기화
+              </button>
+            </div>
+          </section>
+
+          <!-- 학생 목록 -->
+          <section class="students-panel">
+            <div class="students-list-heading">
+              <div>
+                <h3>전체 학생 목록</h3>
+                <p>학생별 상점·벌점·상쇄점 현황</p>
+              </div>
+
+              <span id="students-result-count" class="students-result-count">
+                조회 결과 0명
+              </span>
+            </div>
+
+            <div class="students-table-wrap">
+              <table class="students-table">
+                <thead>
+                  <tr>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                    <th>상점</th>
+                    <th>벌점</th>
+                    <th>상쇄점</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+
+                <tbody id="students-table-body">
+                  <tr>
+                    <td colspan="8" class="students-empty">
+                      학생 데이터를 불러오는 중입니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+
+
+        <!-- 상벌점 기준 페이지 -->
+        <section id="criteria-page" class="criteria-page" hidden>
+
+          <div class="criteria-heading">
+            <div>
+              <h1>상벌점 기준</h1>
+              <p>상점·벌점·상쇄점 기준을 조회하고 엑셀로 등록합니다.</p>
+            </div>
+            <button type="button" id="criteria-refresh" class="button secondary">
+              새로고침
+            </button>
+          </div>
+
+          <!-- 기준 업로드 -->
+          <section class="criteria-upload-card">
+            <div class="criteria-upload-info">
+              <h2>상벌점 기준 업로드</h2>
+              <p>엑셀 파일을 선택한 후 미리보기를 확인하고 등록합니다.</p>
+            </div>
+
+            <div class="criteria-upload-controls">
+              <label for="criteria-start-date">적용 시작일</label>
+              <input type="date" id="criteria-start-date">
+
+              <input type="file" id="criteria-excel" accept=".xlsx,.xls" hidden>
+
+              <button type="button" id="criteria-upload-btn">
+                엑셀 파일 선택
+              </button>
+            </div>
+
+            <p id="criteria-file-name"></p>
+            <p id="criteria-upload-status" role="status"></p>
+          </section>
+
+          <!-- 업로드 미리보기 -->
+          <section id="criteria-preview" class="criteria-preview" hidden>
+            <div class="criteria-section-heading">
+              <h2>업로드 미리보기</h2>
+              <span id="criteria-preview-count"></span>
+            </div>
+
+            <div class="criteria-table-wrap">
+              <table class="criteria-table">
+                <thead>
+                  <tr>
+                    <th>구분</th>
+                    <th>사유</th>
+                    <th>점수</th>
+                    <th>적용시작일</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-preview-body"></tbody>
+              </table>
+            </div>
+
+            <div class="criteria-preview-actions">
+              <button type="button" id="criteria-preview-cancel">
+                취소
+              </button>
+              <button type="button" id="criteria-upload-submit">
+                기준 등록
+              </button>
+            </div>
+          </section>
+
+          <!-- 구분별 탭 -->
+          <div class="criteria-type-tabs">
+            <button type="button" class="criteria-type-tab active" data-criteria-type="상점">상점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="벌점">벌점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="상쇄점">상쇄점</button>
+          </div>
+
+          <!-- 등록된 기준 목록 -->
+          <section class="criteria-list-section">
+            <div class="criteria-section-heading">
+              <div>
+                <h2 id="criteria-list-title">상점 기준</h2>
+                <p id="criteria-result-count">조회 결과 0개</p>
+              </div>
+
+              <select id="criteria-date-filter">
+                <option value="all">전체 적용일</option>
+              </select>
+            </div>
+
+            <div class="criteria-table-wrap">
+              <table class="criteria-table">
+                <thead>
+                  <tr>
+                    <th>항목코드</th>
+                    <th>사유</th>
+                    <th>점수</th>
+                    <th>적용시작일</th>
+                    <th>사용여부</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-list-body">
+                  <tr>
+                    <td colspan="5">기준을 불러오는 중입니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+
+
+        <!-- 선도부원 관리 페이지 -->
+        <section id="prefects-page" class="prefects-page" hidden>
+
+          <div class="prefects-page-header">
+            <div>
+              <h1>선도부원 관리</h1>
+              <p>선도부원 명단과 로그인 인증 상태를 관리합니다.</p>
+            </div>
+          </div>
+
+          <!-- 명단 업로드 -->
+          <div class="prefects-upload-card">
+            <div class="prefects-upload-top">
+              <div>
+                <h2>선도부원 명단 업로드</h2>
+                <p>
+                  엑셀 파일을 업로드하면 새로운 선도부원 명단을
+                  등록할 수 있습니다.
+                </p>
+              </div>
+
+              <label for="prefects-file" class="prefects-file-button">
+                엑셀 파일 선택
+              </label>
+
+              <input type="file" id="prefects-file" accept=".xlsx,.xls" hidden />
+            </div>
+
+            <div id="prefects-upload-preview" class="prefects-upload-preview" hidden>
+              <div class="prefects-upload-summary">
+                <span id="prefects-selected-file"></span>
+                <strong id="prefects-upload-count"></strong>
+              </div>
+
+              <div class="prefects-upload-actions">
+                <button id="prefects-cancel-upload" type="button">
+                  취소
+                </button>
+                <button id="prefects-confirm-upload" type="button">
+                  명단 등록
+                </button>
+                <p id="prefects-upload-message" role="status" aria-live="polite" hidden>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 명단 목록 -->
+          <div class="prefects-list-card">
+            <div class="prefects-list-header">
+              <div>
+                <h2>선도부원 명단</h2>
+                <p id="prefects-result-count">전체 0명</p>
+              </div>
+
+              <div class="prefects-filters">
+                <select id="prefects-year-filter">
+                  <option value="all">전체 학년도</option>
+                </select>
+
+                <select id="prefects-status-filter">
+                  <option value="all">전체 상태</option>
+                  <option value="사용">사용</option>
+                  <option value="종료">종료</option>
+                </select>
+
+                <input type="search" id="prefects-search" placeholder="이름 검색" />
+              </div>
+            </div>
+
+            <div class="prefects-table-wrap">
+              <table class="prefects-table">
+                <thead>
+                  <thead>
+                    <tr>
+                      <th>학년</th>
+                      <th>반</th>
+                      <th>번호</th>
+                      <th>이름</th>
+                      <th>인증키</th>
+                      <th>사용자 ID</th>
+                    </tr>
+                  </thead>
+                </thead>
+
+                <tbody id="prefects-table-body">
+                  <tr>
+                    <td colspan="8" class="prefects-empty">
+                      등록된 선도부원이 없습니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+
+
+        <!-- 상점 부여 팝업 -->
+        <dialog id="reward-dialog" class="reward-dialog">
+          <form id="reward-form" class="reward-form">
+
+            <div class="reward-dialog-header">
+              <div>
+                <h3>학생 상세 / 상벌점 등록</h3>
+                <p>Google Sheets 기준에서 항목을 선택해 등록합니다.</p>
+              </div>
+
+              <button type="button" id="reward-close" class="reward-close" aria-label="닫기">×</button>
+            </div>
+
+            <div class="reward-dialog-body">
+
+              <div class="reward-student-info">
+                <span>부여 대상</span>
+                <strong id="reward-student-name">-</strong>
+                <p id="reward-student-class">-</p>
+                <p id="reward-student-points">-</p>
+              </div>
+
+              <!-- JS에서 선택 학생의 식별값 설정 -->
+              <input type="hidden" id="reward-student-id">
+
+              <div class="students-field">
+                <label for="reward-type">구분</label>
+                <select id="reward-type" required>
+                  <option value="상점">상점</option>
+                  <option value="벌점">벌점</option>
+                  <option value="상쇄점">상쇄점</option>
+                </select>
+              </div>
+              <div class="students-field">
+                <label for="reward-criterion">상벌점 항목</label>
+                <select id="reward-criterion" required>
+                  <option value="">상점 항목 선택</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="reward-score">부여 점수</label>
+                <input type="text" id="reward-score" placeholder="항목 선택 시 표시" readonly>
+              </div>
+
+              <p id="reward-status" class="point-status" role="status" aria-live="polite"></p>
+              <div class="students-field">
+                <label for="reward-note">비고 (선택)</label>
+                <textarea id="reward-note" rows="3" placeholder="필요한 경우 입력"></textarea>
+              </div>
+
+            </div>
+
+            <div class="reward-dialog-footer">
+              <button type="button" id="reward-cancel" class="students-btn-outline">
+                취소
+              </button>
+
+              <button type="submit" id="reward-submit" class="students-btn-primary">
+                등록하기
+              </button>
+            </div>
+
+          </form>
+        </dialog>
+
+      </main>
+    </div>
   </div>
+
 </body>
 
 </html>
