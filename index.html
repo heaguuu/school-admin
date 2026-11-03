@@ -26,6 +26,7 @@
         <a href="#records" class="nav-link">기록 내역</a>
         <a href="#criteria" class="nav-link">상벌점 기준</a>
         <a href="#prefects" class="nav-link">선도부원 관리</a>
+        <a href="#statistics" class="nav-link">상벌점 통계</a>
       </nav>
     </aside>
 
@@ -428,6 +429,97 @@
               <p>선도부원 명단과 로그인 인증 상태를 관리합니다.</p>
             </div>
           </div>
+
+          <section id="statistics-page" hidden>
+            <div class="page-header">
+              <div>
+                <h1>상벌점 통계</h1>
+                <p>월별 벌점 현황과 학급별 순위를 조회합니다.</p>
+              </div>
+            </div>
+
+            <div class="statistics-toolbar">
+              <input type="number" id="statistics-year" min="2000" max="2100">
+
+              <select id="statistics-month">
+                <option value="1">1월</option>
+                <option value="2">2월</option>
+                <option value="3">3월</option>
+                <option value="4">4월</option>
+                <option value="5">5월</option>
+                <option value="6">6월</option>
+                <option value="7">7월</option>
+                <option value="8">8월</option>
+                <option value="9">9월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+              </select>
+
+              <button class="button primary" id="statistics-search">
+                조회
+              </button>
+
+              <button class="button secondary" id="statistics-download">
+                엑셀 다운로드
+              </button>
+            </div>
+
+            <p id="statistics-status"></p>
+
+            <div class="statistics-summary">
+              <div class="statistics-card">
+                <span>벌점 합계</span>
+                <strong id="statistics-total">-</strong>
+              </div>
+
+              <div class="statistics-card">
+                <span>벌점 기록 수</span>
+                <strong id="statistics-count">-</strong>
+              </div>
+
+              <div class="statistics-card">
+                <span>벌점 발생 학급</span>
+                <strong id="statistics-class-count">-</strong>
+              </div>
+            </div>
+
+            <div class="statistics-panel">
+              <h2>학급별 벌점 순위</h2>
+              <div class="statistics-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>순위</th>
+                      <th>학급</th>
+                      <th>벌점 합계</th>
+                      <th>기록 수</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statistics-class-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="statistics-panel">
+              <h2>학생별 벌점 명단</h2>
+              <div class="statistics-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>학년</th>
+                      <th>반</th>
+                      <th>번호</th>
+                      <th>이름</th>
+                      <th>벌점 합계</th>
+                      <th>기록 수</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statistics-student-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
 
           <!-- 명단 업로드 -->
           <div class="prefects-upload-card">
