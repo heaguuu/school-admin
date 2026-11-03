@@ -215,7 +215,7 @@
             <div>
               <p class="eyebrow">STUDENT MANAGEMENT</p>
               <h2>대상자 관리</h2>
-              <p>학생별 상벌점 현황을 확인하고 상점을 부여합니다.</p>
+              <p>학생별 상벌점 현황을 확인하고 상벌점을 등록합니다.</p>
             </div>
 
             <button type="button" id="students-refresh" class="students-btn-outline">
@@ -309,22 +309,25 @@
 
         </section>
 
-        <!--상벌점 기준 페이지-->
+
+        <!-- 상벌점 기준 페이지 -->
         <section id="criteria-page" class="criteria-page" hidden>
+
           <div class="criteria-heading">
             <div>
               <h1>상벌점 기준</h1>
-              <p>적용일별 상벌점 기준을 확인하고 관리합니다.</p>
+              <p>상점·벌점·상쇄점 기준을 조회하고 엑셀로 등록합니다.</p>
             </div>
+            <button type="button" id="criteria-refresh" class="button secondary">
+              새로고침
+            </button>
           </div>
 
-          <div class="criteria-upload-card">
+          <!-- 기준 업로드 -->
+          <section class="criteria-upload-card">
             <div class="criteria-upload-info">
               <h2>상벌점 기준 업로드</h2>
-              <p>
-                엑셀 파일을 선택하면 항목코드를 자동 생성하고
-                새로운 기준을 미리 확인할 수 있습니다.
-              </p>
+              <p>엑셀 파일을 선택한 후 미리보기를 확인하고 등록합니다.</p>
             </div>
 
             <div class="criteria-upload-controls">
@@ -336,15 +339,13 @@
               <button type="button" id="criteria-upload-btn">
                 엑셀 파일 선택
               </button>
-
-              <p id="criteria-upload-status"></p>
             </div>
 
-            <input id="criteria-file" type="file" accept=".xlsx,.xls" hidden />
+            <p id="criteria-file-name"></p>
+            <p id="criteria-upload-status" role="status"></p>
+          </section>
 
-            <p id="criteria-file-name" class="criteria-file-name"></p>
-          </div>
-
+          <!-- 업로드 미리보기 -->
           <section id="criteria-preview" class="criteria-preview" hidden>
             <div class="criteria-section-heading">
               <h2>업로드 미리보기</h2>
@@ -355,7 +356,6 @@
               <table class="criteria-table">
                 <thead>
                   <tr>
-                    <th>항목코드</th>
                     <th>구분</th>
                     <th>사유</th>
                     <th>점수</th>
@@ -367,29 +367,57 @@
             </div>
 
             <div class="criteria-preview-actions">
-              <button id="criteria-preview-cancel" type="button">
+              <button type="button" id="criteria-preview-cancel">
                 취소
               </button>
-              <button id="criteria-upload-submit" type="button">
+              <button type="button" id="criteria-upload-submit">
                 기준 등록
               </button>
             </div>
           </section>
 
-          <div class="criteria-section-heading">
-            <div>
-              <h2>적용일별 기준 목록</h2>
-              <p>현재 및 과거 상벌점 기준을 확인합니다.</p>
-            </div>
-            <select id="criteria-date-filter">
-              <option value="all">전체 적용일</option>
-            </select>
+          <!-- 구분별 탭 -->
+          <div class="criteria-type-tabs">
+            <button type="button" class="criteria-type-tab active" data-criteria-type="상점">상점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="벌점">벌점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="상쇄점">상쇄점</button>
           </div>
 
-          <div id="criteria-groups" class="criteria-groups">
-            <p class="criteria-empty">등록된 기준이 없습니다.</p>
-          </div>
+          <!-- 등록된 기준 목록 -->
+          <section class="criteria-list-section">
+            <div class="criteria-section-heading">
+              <div>
+                <h2 id="criteria-list-title">상점 기준</h2>
+                <p id="criteria-result-count">조회 결과 0개</p>
+              </div>
+
+              <select id="criteria-date-filter">
+                <option value="all">전체 적용일</option>
+              </select>
+            </div>
+
+            <div class="criteria-table-wrap">
+              <table class="criteria-table">
+                <thead>
+                  <tr>
+                    <th>항목코드</th>
+                    <th>사유</th>
+                    <th>점수</th>
+                    <th>적용시작일</th>
+                    <th>사용여부</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-list-body">
+                  <tr>
+                    <td colspan="5">기준을 불러오는 중입니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
         </section>
+
 
         <!-- 선도부원 관리 페이지 -->
         <section id="prefects-page" class="prefects-page" hidden>
@@ -497,8 +525,8 @@
 
             <div class="reward-dialog-header">
               <div>
-                <h3>상점 부여</h3>
-                <p>학생과 상점 항목을 확인해 주세요.</p>
+                <h3>학생 상세 / 상벌점 등록</h3>
+                <p>Google Sheets 기준에서 항목을 선택해 등록합니다.</p>
               </div>
 
               <button type="button" id="reward-close" class="reward-close" aria-label="닫기">×</button>
@@ -510,13 +538,22 @@
                 <span>부여 대상</span>
                 <strong id="reward-student-name">-</strong>
                 <p id="reward-student-class">-</p>
+                <p id="reward-student-points">-</p>
               </div>
 
               <!-- JS에서 선택 학생의 식별값 설정 -->
               <input type="hidden" id="reward-student-id">
 
               <div class="students-field">
-                <label for="reward-criterion">상점 항목</label>
+                <label for="reward-type">구분</label>
+                <select id="reward-type" required>
+                  <option value="상점">상점</option>
+                  <option value="벌점">벌점</option>
+                  <option value="상쇄점">상쇄점</option>
+                </select>
+              </div>
+              <div class="students-field">
+                <label for="reward-criterion">상벌점 항목</label>
                 <select id="reward-criterion" required>
                   <option value="">상점 항목 선택</option>
                 </select>
@@ -527,6 +564,7 @@
                 <input type="text" id="reward-score" placeholder="항목 선택 시 표시" readonly>
               </div>
 
+              <p id="reward-status" class="point-status" role="status" aria-live="polite"></p>
               <div class="students-field">
                 <label for="reward-note">비고 (선택)</label>
                 <textarea id="reward-note" rows="3" placeholder="필요한 경우 입력"></textarea>
@@ -540,7 +578,7 @@
               </button>
 
               <button type="submit" id="reward-submit" class="students-btn-primary">
-                상점 부여
+                등록하기
               </button>
             </div>
 
