@@ -659,7 +659,8 @@ document.addEventListener("DOMContentLoaded", () => {
     students: document.getElementById("students-page"),
     records: document.getElementById("records-page"),
     criteria: document.getElementById("criteria-page"),
-    prefects: document.getElementById("prefects-page")
+    prefects: document.getElementById("prefects-page"),
+    statistics: document.getElementById("statistics-page")
   };
 
   // 사이드바 메뉴
@@ -673,7 +674,8 @@ document.addEventListener("DOMContentLoaded", () => {
     students: "대상자 관리",
     records: "기록 내역",
     criteria: "상벌점 기준",
-    prefects: "선도부원 관리"
+    prefects: "선도부원 관리",
+    statistics: "상벌점 통계"
   };
 
   /* 화면 전환 */
@@ -1459,3 +1461,164 @@ if (document.readyState === "loading") {
 } else {
   initPointCriteriaEvents();
 }
+
+/* ========================================
+   상벌점 통계
+======================================== */
+
+let statisticsData = null;
+
+async function loadPointStatistics() {
+  const year = document.getElementById("statistics-year").value;
+  const month = document.getElementById("statistics-month").value;
+  const status = document.getElementById("statistics-status");
+
+  status.textContent = "통계를 불러오는 중...";
+
+  try {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("action", "pointStatistics");
+    url.searchParams.set("year", year);
+    url.searchParams.set("month", month);
+    url.searchParams.set("_", Date.now());
+
+    const response = await fetch(url.toString(), {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "통계 조회 실패");
+    }
+
+    statisticsData = data;
+
+    document.getElementById("statistics-total").textContent =
+      `${data.totalDemerit}점`;
+
+    document.getElementById("statistics-count").textContent =
+      `${data.totalCount}건`;
+
+    document.getElementById("statistics-class-count").textContent =
+      `${data.classes.length}개 학급`;
+
+    renderStatisticsClasses(data.classes);
+    renderStatisticsStudents(data.students);
+
+    status.textContent = `${data.month} 통계 조회 완료`;
+
+  } catch (error) {
+    statisticsData = null;
+    status.textContent = "조회 실패: " + error.message;
+    console.error(error);
+  }
+}
+
+function renderStatisticsClasses(classes) {
+  const tbody = document.getElementById("statistics-class-body");
+
+  tbody.innerHTML = classes.length
+    ? classes.map(item => `
+      <tr>
+        <td>${item.rank}위</td>
+        <td>${item.grade}학년 ${item.classNo}반</td>
+        <td>${item.demerit}점</td>
+        <td>${item.count}건</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4">해당 월의 벌점 기록이 없습니다.</td></tr>`;
+}
+
+function renderStatisticsStudents(students) {
+  const tbody = document.getElementById("statistics-student-body");
+
+  tbody.innerHTML = students.length
+    ? students.map(item => `
+      <tr>
+        <td>${item.grade}</td>
+        <td>${item.classNo}</td>
+        <td>${item.number}</td>
+        <td>${escapeRecordHtml(item.name)}</td>
+        <td>${item.demerit}점</td>
+        <td>${item.count}건</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="6">해당 월의 벌점 기록이 없습니다.</td></tr>`;
+}
+
+function downloadPointStatistics() {
+  if (!statisticsData) {
+    alert("먼저 통계를 조회하세요.");
+    return;
+  }
+
+  if (typeof XLSX === "undefined") {
+    alert("엑셀 라이브러리를 불러오지 못했습니다.");
+    return;
+  }
+
+  const workbook = XLSX.utils.book_new();
+
+  const classRows = statisticsData.classes.map(item => ({
+    "순위": item.rank,
+    "학년": item.grade,
+    "반": item.classNo,
+    "벌점 합계": item.demerit,
+    "벌점 건수": item.count
+  }));
+
+  const studentRows = statisticsData.students.map(item => ({
+    "학년": item.grade,
+    "반": item.classNo,
+    "번호": item.number,
+    "이름": item.name,
+    "벌점 합계": item.demerit,
+    "벌점 건수": item.count
+  }));
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(classRows, {
+      header: ["순위", "학년", "반", "벌점 합계", "벌점 건수"]
+    }),
+    "학급별 통계"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(studentRows, {
+      header: ["학년", "반", "번호", "이름", "벌점 합계", "벌점 건수"]
+    }),
+    "학생별 통계"
+  );
+
+  XLSX.writeFile(
+    workbook,
+    `상벌점통계_${statisticsData.month}.xlsx`
+  );
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const year = document.getElementById("statistics-year");
+  const month = document.getElementById("statistics-month");
+
+  if (!year || !month) return;
+
+  const now = new Date();
+
+  year.value = now.getFullYear();
+  month.value = now.getMonth() + 1;
+
+  document.getElementById("statistics-search")
+    ?.addEventListener("click", loadPointStatistics);
+
+  document.getElementById("statistics-download")
+    ?.addEventListener("click", downloadPointStatistics);
+
+  loadPointStatistics();
+});
