@@ -430,7 +430,95 @@
             </div>
           </div>
 
-          <section id="statistics-page" hidden>
+          <!-- 명단 업로드 -->
+          <div class="prefects-upload-card">
+            <div class="prefects-upload-top">
+              <div>
+                <h2>선도부원 명단 업로드</h2>
+                <p>
+                  엑셀 파일을 업로드하면 새로운 선도부원 명단을
+                  등록할 수 있습니다.
+                </p>
+              </div>
+
+              <label for="prefects-file" class="prefects-file-button">
+                엑셀 파일 선택
+              </label>
+
+              <input type="file" id="prefects-file" accept=".xlsx,.xls" hidden />
+            </div>
+
+            <div id="prefects-upload-preview" class="prefects-upload-preview" hidden>
+              <div class="prefects-upload-summary">
+                <span id="prefects-selected-file"></span>
+                <strong id="prefects-upload-count"></strong>
+              </div>
+
+              <div class="prefects-upload-actions">
+                <button id="prefects-cancel-upload" type="button">
+                  취소
+                </button>
+                <button id="prefects-confirm-upload" type="button">
+                  명단 등록
+                </button>
+                <p id="prefects-upload-message" role="status" aria-live="polite" hidden>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 명단 목록 -->
+          <div class="prefects-list-card">
+            <div class="prefects-list-header">
+              <div>
+                <h2>선도부원 명단</h2>
+                <p id="prefects-result-count">전체 0명</p>
+              </div>
+
+              <div class="prefects-filters">
+                <select id="prefects-year-filter">
+                  <option value="all">전체 학년도</option>
+                </select>
+
+                <select id="prefects-status-filter">
+                  <option value="all">전체 상태</option>
+                  <option value="사용">사용</option>
+                  <option value="종료">종료</option>
+                </select>
+
+                <input type="search" id="prefects-search" placeholder="이름 검색" />
+              </div>
+            </div>
+
+            <div class="prefects-table-wrap">
+              <table class="prefects-table">
+                <thead>
+                  <thead>
+                    <tr>
+                      <th>학년</th>
+                      <th>반</th>
+                      <th>번호</th>
+                      <th>이름</th>
+                      <th>인증키</th>
+                      <th>사용자 ID</th>
+                    </tr>
+                  </thead>
+                </thead>
+
+                <tbody id="prefects-table-body">
+                  <tr>
+                    <td colspan="8" class="prefects-empty">
+                      등록된 선도부원이 없습니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <section id="statistics-page" hidden>
             <div class="page-header">
               <div>
                 <h1>상벌점 통계</h1>
@@ -520,96 +608,6 @@
               </div>
             </div>
           </section>
-
-          <!-- 명단 업로드 -->
-          <div class="prefects-upload-card">
-            <div class="prefects-upload-top">
-              <div>
-                <h2>선도부원 명단 업로드</h2>
-                <p>
-                  엑셀 파일을 업로드하면 새로운 선도부원 명단을
-                  등록할 수 있습니다.
-                </p>
-              </div>
-
-              <label for="prefects-file" class="prefects-file-button">
-                엑셀 파일 선택
-              </label>
-
-              <input type="file" id="prefects-file" accept=".xlsx,.xls" hidden />
-            </div>
-
-            <div id="prefects-upload-preview" class="prefects-upload-preview" hidden>
-              <div class="prefects-upload-summary">
-                <span id="prefects-selected-file"></span>
-                <strong id="prefects-upload-count"></strong>
-              </div>
-
-              <div class="prefects-upload-actions">
-                <button id="prefects-cancel-upload" type="button">
-                  취소
-                </button>
-                <button id="prefects-confirm-upload" type="button">
-                  명단 등록
-                </button>
-                <p id="prefects-upload-message" role="status" aria-live="polite" hidden>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- 명단 목록 -->
-          <div class="prefects-list-card">
-            <div class="prefects-list-header">
-              <div>
-                <h2>선도부원 명단</h2>
-                <p id="prefects-result-count">전체 0명</p>
-              </div>
-
-              <div class="prefects-filters">
-                <select id="prefects-year-filter">
-                  <option value="all">전체 학년도</option>
-                </select>
-
-                <select id="prefects-status-filter">
-                  <option value="all">전체 상태</option>
-                  <option value="사용">사용</option>
-                  <option value="종료">종료</option>
-                </select>
-
-                <input type="search" id="prefects-search" placeholder="이름 검색" />
-              </div>
-            </div>
-
-            <div class="prefects-table-wrap">
-              <table class="prefects-table">
-                <thead>
-                  <thead>
-                    <tr>
-                      <th>학년</th>
-                      <th>반</th>
-                      <th>번호</th>
-                      <th>이름</th>
-                      <th>인증키</th>
-                      <th>사용자 ID</th>
-                    </tr>
-                  </thead>
-                </thead>
-
-                <tbody id="prefects-table-body">
-                  <tr>
-                    <td colspan="8" class="prefects-empty">
-                      등록된 선도부원이 없습니다.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </section>
-
-
 
         <!-- 상점 부여 팝업 -->
         <dialog id="reward-dialog" class="reward-dialog">
