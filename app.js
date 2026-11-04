@@ -659,8 +659,8 @@ document.addEventListener("DOMContentLoaded", () => {
     students: document.getElementById("students-page"),
     records: document.getElementById("records-page"),
     criteria: document.getElementById("criteria-page"),
-    prefects: document.getElementById("prefects-page"),
-    statistics: document.getElementById("statistics-page")
+    statistics: document.getElementById("statistics-page"),
+    prefects: document.getElementById("prefects-page")
   };
 
   // 사이드바 메뉴
@@ -674,8 +674,8 @@ document.addEventListener("DOMContentLoaded", () => {
     students: "대상자 관리",
     records: "기록 내역",
     criteria: "상벌점 기준",
-    prefects: "선도부원 관리",
-    statistics: "상벌점 통계"
+    statistics: "상벌점 통계",
+    prefects: "선도부원 관리"
   };
 
   /* 화면 전환 */
@@ -1328,8 +1328,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       console.log('[상벌점 등록] 서버 응답', result); status.textContent = `저장 완료 · 시트 ${result.row}행`;
-      await Promise.allSettled([loadTeacherStudents(), checkRecordsConnection(), loadMonthlyStats()]);
-      alert('상벌점 등록 완료! Google Sheets의 점수 부여 시트를 확인하세요.');
+      await Promise.allSettled([
+        loadTeacherStudents(),
+        checkRecordsConnection(),
+        loadMonthlyStats(),
+        loadDailyPoints()
+      ]); alert('상벌점 등록 완료! Google Sheets의 점수 부여 시트를 확인하세요.');
       close();
     } catch (error) { status.textContent = '등록 실패: ' + error.message; }
     finally { submit.disabled = false; }
@@ -1622,3 +1626,106 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadPointStatistics();
 });
+
+/* ========================================
+   홈 - 최근 14일 상벌점 그래프
+======================================== */
+
+async function loadDailyPoints() {
+  const container = document.getElementById("records-chart");
+  if (!container) return;
+
+  container.innerHTML =
+    '<p class="empty-message">그래프 데이터를 불러오는 중입니다.</p>';
+
+  try {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("action", "dailyPoints");
+    url.searchParams.set("_", Date.now());
+
+    const response = await fetch(url.toString(), {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.ok || !Array.isArray(data.days)) {
+      throw new Error(data.error || "그래프 데이터 형식 오류");
+    }
+
+    renderDailyPoints(data.days);
+
+  } catch (error) {
+    console.error("14일 그래프 조회 오류:", error);
+
+    container.innerHTML =
+      '<p class="empty-message">그래프를 불러오지 못했습니다.</p>';
+  }
+}
+
+function renderDailyPoints(days) {
+  const container = document.getElementById("records-chart");
+  if (!container) return;
+
+  const maxPoints = Math.max(
+    1,
+    ...days.flatMap(day => [
+      Number(day.merit) || 0,
+      Number(day.demerit) || 0
+    ])
+  );
+
+  const bars = days.map(day => {
+    const merit = Number(day.merit) || 0;
+    const demerit = Number(day.demerit) || 0;
+
+    const meritHeight = merit / maxPoints * 100;
+    const demeritHeight = demerit / maxPoints * 100;
+
+    const label = day.date.slice(5).replace("-", "/");
+
+    return `
+      <div class="chart-day">
+        <div class="chart-day-bars">
+          <div
+            class="chart-bar reward"
+            style="height:${meritHeight}%"
+            title="${label} 상점 ${merit}점"
+          ></div>
+
+          <div
+            class="chart-bar penalty"
+            style="height:${demeritHeight}%"
+            title="${label} 벌점 ${demerit}점"
+          ></div>
+        </div>
+
+        <span class="chart-label">${label}</span>
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="chart-legend">
+      <span class="legend-item">
+        <span class="legend-dot reward"></span>
+        상점
+      </span>
+
+      <span class="legend-item">
+        <span class="legend-dot penalty"></span>
+        벌점
+      </span>
+    </div>
+
+    <div class="chart-bars">
+      ${bars}
+    </div>
+  `;
+}
+
+document.addEventListener("DOMContentLoaded", loadDailyPoints);
