@@ -1,1731 +1,686 @@
-/* ========================================
-    홈-전체 학생 수 표시
-======================================== */
-
-
-const GAS_URL = "https://script.google.com/macros/s/AKfycby5jCVwAh8-YVe-gpYuRn2uHiAXYf7dNIARudvf188sr73VcG0P4z0xvLD81SsSLXkh/exec";
-
-async function loadStudentCount() {
-  const element = document.getElementById("student-count");
-  if (!element) return;
-  element.textContent = "불러오는 중";
-
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "studentCount");
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      redirect: "follow"
-    });
-
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
-    }
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      throw new Error("학생 수 조회 실패");
-    }
-
-    element.textContent =
-      Number(data.count).toLocaleString("ko-KR") + "명";
-
-  } catch (error) {
-    console.error("학생 수 조회 오류:", error);
-    element.textContent = "연결 오류";
-  }
-}
-document.addEventListener("DOMContentLoaded", loadStudentCount);
-
-/* =====================================
-   홈 화면 - 이번 달 상벌점 통계
-===================================== */
-
-async function loadMonthlyStats() {
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "monthlyStats");
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      throw new Error(data.error || "통계 조회 실패");
-    }
-
-    // 이번 달 상점
-    const reward = document.getElementById("monthly-reward");
-    if (reward) {
-      reward.textContent = `${data.meritPoints}점`;
-    }
-
-    // 이번 달 벌점
-    const penalty = document.getElementById("monthly-penalty");
-    if (penalty) {
-      penalty.textContent = `${data.demeritPoints}점`;
-    }
-
-    // 이번 달 기록 수
-    const count = document.getElementById("monthly-record-count");
-    if (count) {
-      count.textContent = `${data.demeritCount}건`;
-    }
-
-    console.log("이번 달 통계 조회 성공:", data);
-
-  } catch (error) {
-    console.error("이번 달 통계 조회 오류:", error);
-  }
-}
-
-document.addEventListener(
-  "DOMContentLoaded",
-  loadMonthlyStats
-);
-
-
-/* =====================================
-   상벌점 부여 기록 조회
-===================================== */
-
-function escapeRecordHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
-}
-
-/*그 뭔 이상한 T나오는 ISO 8601 형식 지움 */
-function formatRecordDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  }).format(date);
-}
-
-function renderPointRecords(records) {
-  const tbody = document.getElementById("student-records-body");
-  const count = document.getElementById("records-result-count");
-
-  if (!tbody) return;
-
-  if (!Array.isArray(records)) {
-    throw new Error("기록 데이터 형식 오류");
-  }
-
-  if (count) {
-    count.textContent = `조회 결과 ${records.length}건`;
-  }
-
-  if (records.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="10">등록된 기록이 없습니다.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = records.map(record => `
-    <tr>
-      <td>${escapeRecordHtml(record.year)}</td>
-      <td>${escapeRecordHtml(record.grade)}</td>
-      <td>${escapeRecordHtml(record.classNo)}</td>
-      <td>${escapeRecordHtml(record.number)}</td>
-      <td>${escapeRecordHtml(record.name)}</td>
-      <td>${escapeRecordHtml(record.code)}</td>
-      <td>${escapeRecordHtml(record.score)}</td>
-      <td>${escapeRecordHtml(formatRecordDate(record.date))}</td>
-      <td>${escapeRecordHtml(record.requester)}</td>
-      <td>${escapeRecordHtml(record.status)}</td>
-    </tr>
-  `).join("");
-}
-
-async function checkRecordsConnection() {
-  const count = document.getElementById("records-result-count");
-  const tbody = document.getElementById("student-records-body");
-
-  if (!tbody) return;
-
-  try {
-    if (typeof GAS_URL === "undefined" || !GAS_URL) {
-      throw new Error("GAS_URL이 설정되지 않았습니다.");
-    }
-
-    if (count) count.textContent = "불러오는 중...";
-
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "pointRecords");
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    console.log("GAS 응답 확인:", {
-      ok: data.ok,
-      count: data.records?.length,
-      error: data.error
-    });
-
-    if (!data.ok) {
-      throw new Error(data.error || "기록 조회 실패");
-    }
-
-    if (!Array.isArray(data.records)) {
-      throw new Error("GAS에서 records 배열을 반환하지 않았습니다.");
-    }
-
-    renderPointRecords(data.records);
-
-  } catch (error) {
-    console.error("상벌점 기록 조회 오류:", error);
-
-    if (count) count.textContent = "연결 실패";
-
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="10">
-          기록을 불러오지 못했습니다.
-        </td>
-      </tr>
-    `;
-  }
-}
-
-document.addEventListener(
-  "DOMContentLoaded",
-  checkRecordsConnection
-);
-
-// [사용]하는 상벌점만 사용
-
-
-
-/* ========================================
-   상벌점 기준 관리
-   엑셀 업로드 + Google Sheets 연동
-======================================== */
-
-let criteriaData = [];
-let pendingCriteria = [];
-let selectedCriteriaType = "상점";
-
-// HTML 특수문자 처리
-function criteriaEscape(value) {
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[ch]);
-}
-
-// 날짜 기본값: 오늘
-function setCriteriaToday() {
-  const input = document.getElementById("criteria-start-date");
-  if (!input) return;
-
-  const now = new Date();
-  const local = new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000
-  );
-  input.value = local.toISOString().slice(0, 10);
-}
-
-// 엑셀 파일 읽기
-async function readCriteriaUpload(file) {
-  if (typeof XLSX === "undefined") {
-    throw new Error("엑셀 라이브러리를 불러오지 못했습니다.");
-  }
-
-  const workbook = XLSX.read(
-    await file.arrayBuffer(),
-    { type: "array" }
-  );
-
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, {
-    defval: "",
-    raw: false
-  });
-
-  if (!rows.length) {
-    throw new Error("엑셀에 등록할 항목이 없습니다.");
-  }
-
-  if (rows.length > 500) {
-    throw new Error("한 번에 500개까지만 등록할 수 있습니다.");
-  }
-
-  return rows.map((row, index) => {
-    const type = String(row["구분"] ?? "").trim();
-    const reason = String(row["사유"] ?? "").trim();
-    const rawScore = String(row["점수"] ?? "").trim();
-    const score = Number(rawScore);
-
-    if (!["상점", "벌점", "상쇄점"].includes(type)) {
-      throw new Error(`엑셀 ${index + 2}행: 구분 오류`);
-    }
-
-    if (!reason || reason.length > 150) {
-      throw new Error(`엑셀 ${index + 2}행: 사유 오류`);
-    }
-
-    if (rawScore === "" ||
-      !Number.isInteger(score) ||
-      score === 0) {
-      throw new Error(`엑셀 ${index + 2}행: 점수 오류`);
-    }
-
-    return {
-      type,
-      reason,
-      score
-    };
-  });
-}
-
-// 업로드 미리보기
-function showCriteriaUploadPreview() {
-  const preview = document.getElementById("criteria-preview");
-  const tbody = document.getElementById("criteria-preview-body");
-  const count = document.getElementById("criteria-preview-count");
-  const startDate =
-    document.getElementById("criteria-start-date").value;
-
-  count.textContent = `${pendingCriteria.length}개 항목`;
-
-  tbody.innerHTML = pendingCriteria.map(item => `
-    <tr>
-      <td>${criteriaEscape(item.type)}</td>
-      <td>${criteriaEscape(item.reason)}</td>
-      <td>${item.score > 0 ? "+" : ""}${item.score}점</td>
-      <td>${criteriaEscape(startDate)}</td>
-    </tr>
-  `).join("");
-
-  preview.hidden = false;
-}
-
-// Google Sheets 기준 목록 조회
-async function loadCriteriaList() {
-  const status = document.getElementById("criteria-upload-status");
-
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "criteriaList");
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (!result.ok || !Array.isArray(result.criteria)) {
-      throw new Error(result.error || "기준 조회 실패");
-    }
-
-    criteriaData = result.criteria;
-    updateCriteriaDateFilter();
-    renderCriteriaList();
-
-  } catch (error) {
-    console.error("기준 조회 오류:", error);
-    if (status) {
-      status.textContent = "기준 조회 실패: " + error.message;
-    }
-  }
-}
-
-// 적용일 필터
-function updateCriteriaDateFilter() {
-  const select = document.getElementById("criteria-date-filter");
-  const selected = select.value;
-
-  const dates = [...new Set(
-    criteriaData.map(item => item.start).filter(Boolean)
-  )].sort().reverse();
-
-  select.replaceChildren(
-    new Option("전체 적용일", "all")
-  );
-
-  dates.forEach(date => {
-    select.add(new Option(date, date));
-  });
-
-  select.value = dates.includes(selected) ? selected : "all";
-}
-
-// 구분별 기준 목록
-function renderCriteriaList() {
-  const tbody = document.getElementById("criteria-list-body");
-  const title = document.getElementById("criteria-list-title");
-  const count = document.getElementById("criteria-result-count");
-  const date = document.getElementById("criteria-date-filter").value;
-
-  title.textContent = selectedCriteriaType + " 기준";
-
-  const rows = criteriaData.filter(item => {
-    return item.type === selectedCriteriaType &&
-      (date === "all" || item.start === date);
-  });
-
-  count.textContent = `조회 결과 ${rows.length}개`;
-
-  if (!rows.length) {
-    tbody.innerHTML = `
-      <tr><td colspan="5">등록된 기준이 없습니다.</td></tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = rows.map(item => `
-    <tr>
-      <td>${criteriaEscape(item.code)}</td>
-      <td>${criteriaEscape(item.reason)}</td>
-      <td>${item.score > 0 ? "+" : ""}${item.score}점</td>
-      <td>${criteriaEscape(item.start)}</td>
-      <td>${criteriaEscape(item.status)}</td>
-    </tr>
-  `).join("");
-}
-
-// GAS POST 요청
-
-
-function uploadCriteriaToGAS(criteria, startDate) {
-  return new Promise((resolve, reject) => {
-    const nonce = crypto.randomUUID();
-
-    const iframe = document.createElement("iframe");
-    const form = document.createElement("form");
-    const field = document.createElement("input");
-
-    iframe.name = "criteria_" + nonce.replaceAll("-", "");
-    iframe.hidden = true;
-
-    form.method = "POST";
-    form.action = GAS_URL;
-    form.target = iframe.name;
-    form.hidden = true;
-
-    field.type = "hidden";
-    field.name = "packet";
-    field.value = JSON.stringify({
-      action: "saveCriteriaTest",
-      payload: { criteria, startDate },
-      nonce,
-      replyOrigin: location.origin
-    });
-
-    form.append(field);
-
-    console.log("[기준 업로드] 요청 시작", {
-      count: criteria.length,
-      startDate,
-      nonce
-    });
-
-    function cleanup() {
-      clearTimeout(timer);
-      window.removeEventListener("message", receive);
-      form.remove();
-      iframe.remove();
-    }
-
-    function receive(event) {
-      const result = event.data;
-
-      if (
-        !result ||
-        result.channel !== "criteria-upload-v1" ||
-        result.nonce !== nonce
-      ) return;
-
-      console.log("[기준 업로드] 응답 출처:", event.origin);
-      console.log("[기준 업로드] 응답:", result);
-
-      let host;
-
-      try {
-        host = new URL(event.origin).hostname;
-      } catch {
-        return;
-      }
-
-      const allowed =
-        host === "script.google.com" ||
-        host === "script.googleusercontent.com" ||
-        host.endsWith(".googleusercontent.com");
-
-      if (!allowed) {
-        console.warn("허용되지 않은 응답 출처:", host);
-        return;
-      }
-
-      cleanup();
-
-      if (result.ok) {
-        resolve(result.data);
-      } else {
-        reject(new Error(result.error || "저장 실패"));
-      }
-    }
-
-    const timer = setTimeout(() => {
-      cleanup();
-
-      reject(new Error(
-        "서버 응답 시간 초과. GAS 실행 로그를 확인하세요."
-      ));
-    }, 45000);
-
-    window.addEventListener("message", receive);
-
-    document.body.append(iframe, form);
-    form.submit();
-  });
-}
-
-
-
-// 화면 이벤트
-document.addEventListener("DOMContentLoaded", () => {
-  const fileInput = document.getElementById("criteria-excel");
-  const chooseBtn = document.getElementById("criteria-upload-btn");
-  const submitBtn = document.getElementById("criteria-upload-submit");
-  const cancelBtn = document.getElementById("criteria-preview-cancel");
-  const preview = document.getElementById("criteria-preview");
-  const status = document.getElementById("criteria-upload-status");
-  const fileName = document.getElementById("criteria-file-name");
-  const dateInput = document.getElementById("criteria-start-date");
-
-  if (!fileInput || !chooseBtn) return;
-
-  setCriteriaToday();
-  loadCriteriaList();
-
-  // 탭 전환
-  document.querySelectorAll("[data-criteria-type]")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        selectedCriteriaType = button.dataset.criteriaType;
-
-        document.querySelectorAll("[data-criteria-type]")
-          .forEach(tab => {
-            tab.classList.toggle(
-              "active",
-              tab === button
-            );
-          });
-
-        renderCriteriaList();
-      });
-    });
-
-  // 기준 조회
-  document.getElementById("criteria-refresh")
-    ?.addEventListener("click", loadCriteriaList);
-
-  document.getElementById("criteria-date-filter")
-    ?.addEventListener("change", renderCriteriaList);
-
-  // 파일 선택
-  chooseBtn.addEventListener("click", () => {
-    if (!dateInput.value) {
-      alert("적용 시작일을 선택하세요.");
-      return;
-    }
-
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-
-    try {
-      pendingCriteria = await readCriteriaUpload(file);
-      fileName.textContent = file.name;
-      status.textContent = "";
-      showCriteriaUploadPreview();
-    } catch (error) {
-      pendingCriteria = [];
-      preview.hidden = true;
-      fileInput.value = "";
-      status.textContent = "오류: " + error.message;
-    }
-  });
-
-  // 취소
-  cancelBtn.addEventListener("click", () => {
-    pendingCriteria = [];
-    preview.hidden = true;
-    fileInput.value = "";
-    fileName.textContent = "";
-  });
-
-  // 기준 등록
-  submitBtn.addEventListener("click", async () => {
-    if (!pendingCriteria.length) return;
-
-    const startDate = dateInput.value;
-
-    if (!startDate) {
-      alert("적용 시작일을 선택하세요.");
-      return;
-    }
-
-    if (!confirm(
-      `${startDate}부터 적용할 기준 ` +
-      `${pendingCriteria.length}개를 등록할까요?`
-    )) return;
-
-    submitBtn.disabled = true;
-    status.textContent = "Google Sheets에 저장 중...";
-
-    try {
-      const result = await uploadCriteriaToGAS(
-        pendingCriteria,
-        startDate
-      );
-
-      status.textContent =
-        `${result.saved}개 기준 저장 완료`;
-
-      pendingCriteria = [];
-      preview.hidden = true;
-      fileInput.value = "";
-      fileName.textContent = "";
-
-      await loadCriteriaList();
-
-    } catch (error) {
-      status.textContent = "등록 실패: " + error.message;
-    } finally {
-      submitBtn.disabled = false;
-    }
-  });
-});
-
-
-/* ========================================
-   전체 - 화면 전환 기능 코드
-======================================== */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  // 페이지 요소
-  const pages = {
-    home: document.getElementById("home-page"),
-    students: document.getElementById("students-page"),
-    records: document.getElementById("records-page"),
-    criteria: document.getElementById("criteria-page"),
-    prefects: document.getElementById("prefects-page"),
-    statistics: document.getElementById("statistics-page")
-  };
-
-  // 사이드바 메뉴
-  const navLinks = document.querySelectorAll(
-    ".sidebar-nav .nav-link"
-  );
-
-  // 대상 페이지 이름
-  const pageTitles = {
-    home: "홈",
-    students: "대상자 관리",
-    records: "기록 내역",
-    criteria: "상벌점 기준",
-    prefects: "선도부원 관리",
-    statistics: "상벌점 통계"
-  };
-
-  /* 화면 전환 */
-  function showPage(pageName) {
-    if (!pages[pageName]) {
-      console.warn("미구현 페이지:", pageName);
-      return;
-    }
-
-    // 모든 페이지 숨기기
-    Object.values(pages).forEach(page => {
-      if (page) {
-        page.hidden = true;
-      }
-    });
-
-    pages[pageName].hidden = false;
-
-    navLinks.forEach(link => {
-      const target = link.getAttribute("href");
-
-      link.classList.toggle(
-        "active",
-        target === "#" + pageName
-      );
-    });
-    const breadcrumb = document.querySelector(
-      ".breadcrumb"
-    );
-
-    if (breadcrumb) {
-      breadcrumb.textContent =
-        "생활지도 관리 / " + pageTitles[pageName];
-    }
-  }
-  navLinks.forEach(link => {
-
-    link.addEventListener("click", event => {
-      const pageName = link
-        .getAttribute("href")
-        .replace("#", "");
-      if (!pages[pageName]) {
-        event.preventDefault();
-        return;
-      }
-      event.preventDefault();
-
-      window.location.hash = pageName;
-      showPage(pageName);
-    });
-
-  });
-
-  window.addEventListener("hashchange", () => {
-    const pageName = window.location.hash.replace("#", "");
-
-    if (pages[pageName]) {
-      showPage(pageName);
-    }
-  });
-  const initialPage =
-    window.location.hash.replace("#", "") || "home";
-
-  showPage(
-    pages[initialPage] ? initialPage : "home"
-  );
-
-});
-
-/* =========================================
-   대상자 관리 페이지
-========================================= */
-
-let teacherStudents = [];
-let teacherCriteria = [];
-let teacherRecords = [];
-let selectedTeacherStudent = null;
-
-// HTML 특수문자 처리
-function studentEsc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[ch]);
-}
-
-// 숫자·학번 비교용
-function sameNumber(a, b) {
-  return Number(a) === Number(b);
-}
-
-// 유효 기록 확인
-function validStudentRecord(record) {
-  return !["취소", "반려"].includes(record.status);
-}
-
-// 학생별 점수 계산
-function calculateStudentPoints(student) {
-  return {
-    merit: Number(student.merit) || 0,
-    demerit: Number(student.demerit) || 0,
-    offset: Number(student.offset) || 0,
-    total: Number(student.total) || 0,
-    classScore: Number(student.classScore) || 0,
-    count: 0
-  };
-}
-
-// 검색 조건 적용
-function filterTeacherStudents() {
-  const name = document.getElementById("students-search")
-    ?.value.trim().toLowerCase() || "";
-
-  const grade = document.getElementById("students-grade")
-    ?.value || "";
-
-  const classNo = document.getElementById("students-class")
-    ?.value || "";
-
-  const number = document.getElementById("students-number")
-    ?.value.trim() || "";
-
-  return teacherStudents.filter(student => {
-    const nameMatch =
-      !name || student.name.toLowerCase().includes(name);
-
-    const gradeMatch =
-      !grade || grade === "all" ||
-      sameNumber(student.grade, grade);
-
-    const classMatch =
-      !classNo || classNo === "all" ||
-      sameNumber(student.classNo, classNo);
-
-    const numberMatch =
-      !number || sameNumber(student.number, number);
-
-    return nameMatch && gradeMatch &&
-      classMatch && numberMatch;
-  });
-}
-
-// 학생 목록 표시
-function renderTeacherStudents() {
-  const tbody = document.getElementById("students-table-body");
-  const count = document.getElementById("students-result-count");
-
-  if (!tbody) return;
-
-  const students = filterTeacherStudents();
-
-  if (count) {
-    count.textContent = `조회 결과 ${students.length}명`;
-  }
-
-  if (!students.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8">조회된 학생이 없습니다.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = students.map(student => {
-    const points = calculateStudentPoints(student);
-
-    return `
-      <tr>
-        <td>${studentEsc(student.grade)}</td>
-        <td>${studentEsc(student.classNo)}</td>
-        <td>${studentEsc(student.number)}</td>
-        <td>${studentEsc(student.name)}</td>
-        <td>${points.merit}점</td>
-        <td>${points.demerit}점</td>
-        <td>${points.offset}점</td>
-        <td>
-          <button
-            type="button"
-            class="button secondary small"
-            data-teacher-student="${studentEsc(student.id)}"
-          >상세 / 등록</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-// 합계 카드 표시
-function renderTeacherSummary() {
-  let merit = 0;
-  let demerit = 0;
-
-  teacherStudents.forEach(student => {
-    const points = calculateStudentPoints(student);
-    merit += points.merit;
-    demerit += points.demerit;
-  });
-
-  const setText = (id, text) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  };
-
-  setText("students-total", `${teacherStudents.length}명`);
-  setText("students-reward-total", `${merit}점`);
-  setText("students-penalty-total", `${demerit}점`);
-}
-
-// 데이터 연결 시 실행
-function setTeacherStudentData(data) {
-  teacherStudents = Array.isArray(data.students)
-    ? data.students : [];
-
-  teacherCriteria = Array.isArray(data.criteria)
-    ? data.criteria : [];
-
-  teacherRecords = Array.isArray(data.records)
-    ? data.records : [];
-
-  renderTeacherStudents();
-  renderTeacherSummary();
-}
-
-// 검색 초기화
-function resetTeacherStudentSearch() {
-  ["students-search", "students-number"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-
-  ["students-grade", "students-class"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.selectedIndex = 0;
-  });
-
-  renderTeacherStudents();
-}
-
-// 학생 상세 및 기록 표시
-function openTeacherStudentDetail(id) {
-  const student = teacherStudents.find(s => String(s.id) === String(id));
-  if (!student) return;
-  selectedTeacherStudent = student;
-  const points = calculateStudentPoints(student);
-  document.getElementById("reward-student-name").textContent = student.name;
-  document.getElementById("reward-student-class").textContent = `${student.grade}학년 ${student.classNo}반 ${student.number}번`;
-  document.getElementById("reward-student-points").textContent = `상점 ${points.merit}점 · 벌점 ${points.demerit}점 · 상쇄점 ${points.offset}점`;
-  document.getElementById("reward-student-id").value = student.id;
-  document.getElementById("reward-note").value = "";
-  document.getElementById("reward-type").value = "상점";
-  document.getElementById("reward-status").textContent = "기준을 불러오는 중...";
-  document.getElementById("reward-dialog").showModal();
-  loadAdminPointCriteria();
-}
-
-// 화면 이벤트
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("students-search-btn")
-    ?.addEventListener("click", renderTeacherStudents);
-
-  document.getElementById("students-reset-btn")
-    ?.addEventListener("click", resetTeacherStudentSearch);
-
-  document.getElementById("students-refresh")
-    ?.addEventListener("click", loadTeacherStudents);
-
-  ["students-search", "students-number"].forEach(id => {
-    document.getElementById(id)
-      ?.addEventListener("input", renderTeacherStudents);
-  });
-
-  ["students-grade", "students-class"].forEach(id => {
-    document.getElementById(id)
-      ?.addEventListener("change", renderTeacherStudents);
-  });
-
-  document.getElementById("students-table-body")
-    ?.addEventListener("click", event => {
-      const button = event.target.closest(
-        "[data-teacher-student]"
-      );
-
-      if (button) {
-        openTeacherStudentDetail(
-          button.dataset.teacherStudent
-        );
-      }
-    });
-});
-
-async function loadTeacherStudents() {
-  const tbody = document.getElementById("students-table-body");
-
-  if (!tbody) return;
-
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="8">학생 데이터를 불러오는 중입니다.</td>
-    </tr>
-  `;
-
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "teacherStudents");
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      redirect: "follow",
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      throw new Error(data.error || "학생 조회 실패");
-    }
-
-    // 기존 대상자 관리 기능에 데이터 전달
-    setTeacherStudentData(data);
-
-    console.log("학생 데이터 연결 성공:", {
-      students: teacherStudents.length,
-      criteria: teacherCriteria.length,
-      records: teacherRecords.length
-    });
-
-  } catch (error) {
-    console.error("대상자 관리 오류:", error);
-
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8">
-          학생 데이터를 불러오지 못했습니다.
-        </td>
-      </tr>
-    `;
-
-    alert("학생 데이터 조회 실패: " + error.message);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadTeacherStudents();
-});
-
-
-/* ===== 선도부원 관리: Google Sheets 연동 ===== */
-let prefectRows = [];
-let pendingPrefectRows = [];
-
-function prefectRequest(action, payload = {}) {
-  return new Promise((resolve, reject) => {
-    const nonce = (crypto.randomUUID?.() || `${Date.now()}_${Math.random()}`);
-    const iframe = document.createElement('iframe');
-    const form = document.createElement('form');
-    const field = document.createElement('input');
-    iframe.name = 'prefect_' + nonce.replace(/[^a-zA-Z0-9]/g, '');
-    iframe.hidden = true;
-    form.method = 'POST';
-    form.action = GAS_URL;
-    form.target = iframe.name;
-    form.hidden = true;
-    field.name = 'packet';
-    field.type = 'hidden';
-    field.value = JSON.stringify({ action, payload, nonce, replyOrigin: location.origin });
-    form.append(field);
-    function cleanup() {
-      clearTimeout(timer);
-      window.removeEventListener('message', receive);
-      form.remove();
-      iframe.remove();
-    }
-    function receive(event) {
-      let host;
-      try { host = new URL(event.origin).hostname; } catch { return; }
-      if (host !== 'script.google.com' && host !== 'script.googleusercontent.com' && !host.endsWith('-script.googleusercontent.com')) return;
-      if (event.data?.channel !== 'prefect-manage-v1' || event.data.nonce !== nonce) return;
-      cleanup();
-      if (event.data.ok) resolve(event.data.data);
-      else reject(new Error(event.data.error || '요청 실패'));
-    }
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('서버 응답 시간 초과. 시트를 확인한 뒤 새로고침해 주세요.'));
-    }, 45000);
-    window.addEventListener('message', receive);
-    document.body.append(iframe, form);
-    form.submit();
-  });
-}
-
-function prefectEsc(v) {
-  return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
-
-function renderPrefects() {
-  const term = document.getElementById('prefects-search')?.value.trim().toLowerCase() || '';
-  const rows = prefectRows.filter(x => x.name.toLowerCase().includes(term));
-  document.getElementById('prefects-result-count').textContent = `조회 ${rows.length}명 / 전체 ${prefectRows.length}명`;
-  document.getElementById('prefects-table-body').innerHTML = rows.length
-    ? rows.map(x => `<tr>
-        <td>${prefectEsc(x.grade)}</td><td>${prefectEsc(x.classNo)}</td>
-        <td>${prefectEsc(x.number)}</td><td>${prefectEsc(x.name)}</td>
-        <td>${x.authKey ? prefectEsc(x.authKey) : '미발급'}</td>
-        <td><button type="button" class="button secondary small" data-prefect-key="${Number(x.row)}" ${x.authKey ? 'disabled' : ''}>${x.authKey ? '발급 완료' : '인증키 발급'}</button></td>
-      </tr>`).join('')
-    : '<tr><td colspan="6">등록된 선도부원이 없습니다.</td></tr>';
-}
-
-async function loadPrefects() {
-  const msg = document.getElementById('prefects-list-message');
-  if (msg) msg.textContent = '명부 불러오는 중...';
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set('action', 'prefectList');
-    url.searchParams.set('_', String(Date.now()));
-    const response = await fetch(url.toString(), { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const result = await response.json();
-    if (!result.ok || !Array.isArray(result.users)) throw new Error(result.error || '명부 조회 실패');
-    prefectRows = result.users;
-    renderPrefects();
-    if (msg) msg.textContent = '';
-  } catch (error) {
-    if (msg) msg.textContent = '명부 조회 실패: ' + error.message;
-  }
-}
-
-
-// 선도부원 엑셀 파일 읽는다.
-async function readPrefectsExcel(file) {
-  if (typeof XLSX === 'undefined') throw new Error('엑셀 라이브러리가 없습니다.');
-  const book = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  const rows = XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { defval: '', raw: false });
-  if (!rows.length) throw new Error('엑셀에 선도부원 명단이 없습니다.');
-  const seen = new Set();
-  return rows.map((row, index) => {
-    const grade = String(row['학년'] ?? '').trim();
-    const classNo = String(row['반'] ?? '').trim();
-    const number = String(row['번호'] ?? '').trim();
-    const name = String(row['이름'] ?? '').trim();
-    if (!/^[1-3]$/.test(grade) || !/^\d+$/.test(classNo) || !/^\d+$/.test(number) || !name)
-      throw new Error(`엑셀 ${index + 2}행: 학년·반·번호·이름을 확인하세요.`);
-    const key = `${grade}-${Number(classNo)}-${Number(number)}`;
-    if (seen.has(key)) throw new Error(`엑셀 ${index + 2}행: 학년·반·번호 중복`);
-    seen.add(key);
-    return { grade, classNo: String(Number(classNo)), number: String(Number(number)), name };
-  });
-}
-
-// 선도부원 명단 업로드
-document.addEventListener('DOMContentLoaded', () => {
-  const file = document.getElementById('prefects-file');
-  const preview = document.getElementById('prefects-upload-preview');
-  const message = document.getElementById('prefects-upload-message');
-  const confirmBtn = document.getElementById('prefects-confirm-upload');
-  if (!file || !preview || !confirmBtn) return;
-  loadPrefects();
-  document.getElementById('prefects-refresh')?.addEventListener('click', loadPrefects);
-  document.getElementById('prefects-search')?.addEventListener('input', renderPrefects);
-  file.addEventListener('change', async () => {
-    const selected = file.files?.[0];
-    if (!selected) return;
-    try {
-      pendingPrefectRows = await readPrefectsExcel(selected);
-      document.getElementById('prefects-selected-file').textContent = selected.name;
-      document.getElementById('prefects-upload-count').textContent = `${pendingPrefectRows.length}명`;
-      preview.hidden = false;
-      message.hidden = true;
-    } catch (error) {
-      pendingPrefectRows = [];
-      preview.hidden = true;
-      file.value = '';
-      alert(error.message);
-    }
-  });
-  document.getElementById('prefects-cancel-upload')?.addEventListener('click', () => {
-    pendingPrefectRows = [];
-    file.value = '';
-    preview.hidden = true;
-  });
-  confirmBtn.addEventListener('click', async () => {
-    if (!pendingPrefectRows.length) return;
-    if (!confirm(`현재 선도부원 명부를 지우고 ${pendingPrefectRows.length}명으로 교체할까요?\n기존 인증키도 초기화됩니다.`)) return;
-    confirmBtn.disabled = true;
-    message.hidden = false;
-    message.textContent = 'Google Sheets에 명부 저장 중...';
-    try {
-      const result = await prefectRequest('prefectReplace', { users: pendingPrefectRows });
-      message.textContent = `${result.saved}명 저장 완료`;
-      pendingPrefectRows = [];
-      file.value = '';
-      await loadPrefects();
-      preview.hidden = true;
-    } catch (error) {
-      message.textContent = '등록 실패: ' + error.message;
-    } finally { confirmBtn.disabled = false; }
-  });
-  document.getElementById('prefects-table-body')?.addEventListener('click', async event => {
-    const button = event.target.closest('[data-prefect-key]');
-    if (!button || button.disabled) return;
-    const row = Number(button.dataset.prefectKey);
-    const user = prefectRows.find(x => x.row === row);
-    if (!user || !confirm(`${user.name} 학생의 6자리 인증키를 발급할까요?`)) return;
-    button.disabled = true;
-    const msg = document.getElementById('prefects-list-message');
-    if (msg) msg.textContent = '인증키 발급 중...';
-    try {
-      await prefectRequest('prefectIssueKey', { row, grade: user.grade, classNo: user.classNo, number: user.number, name: user.name });
-      await loadPrefects();
-    } catch (error) {
-      if (msg) msg.textContent = '발급 실패: ' + error.message;
-      button.disabled = false;
-    }
-  });
-});
-
-/* ===== 학생 상세: 상벌점 등록 (Google Sheets 연동) ===== */
-let adminPointCriteria = [];
-function renderAdminPointCriteria() {
-  const type = document.getElementById('reward-type').value;
-  const select = document.getElementById('reward-criterion');
-  select.replaceChildren(new Option('항목을 선택하세요', ''));
-  adminPointCriteria.filter(x => x.type === type).forEach(x => {
-    select.add(new Option(`${x.reason} (${Number(x.score) > 0 ? '+' : ''}${x.score}점)`, x.code));
-  });
-  document.getElementById('reward-score').value = '';
-}
-
-async function loadAdminPointCriteria() {
-  const status = document.getElementById('reward-status');
-
-  try {
-    const url = new URL(GAS_URL);
-
-    // Code.gs에 추가한 API와 이름 통일
-    url.searchParams.set('action', 'activeCriteria');
-    url.searchParams.set('_', String(Date.now()));
-
-    const response = await fetch(url.toString(), {
-      cache: 'no-store'
-    });
-
-    if (!response.ok) {
-      throw new Error('HTTP ' + response.status);
-    }
-
-    const result = await response.json();
-
-    if (!result.ok) {
-      throw new Error(result.error || '기준 조회 실패');
-    }
-
-    if (!Array.isArray(result.criteria)) {
-      throw new Error('기준 데이터 형식 오류');
-    }
-
-    adminPointCriteria = result.criteria;
-
-    // 기존 항목 표시 함수 유지
-    renderAdminPointCriteria();
-
-    if (status) {
-      status.textContent =
-        `현재 사용 가능한 기준 ${adminPointCriteria.length}개`;
-    }
-
-    console.log('불러온 상벌점 기준:', adminPointCriteria);
-
-  } catch (error) {
-    adminPointCriteria = [];
-    renderAdminPointCriteria();
-
-    if (status) {
-      status.textContent =
-        '기준 조회 실패: ' + error.message;
-    }
-
-    console.error('상벌점 기준 조회 오류:', error);
-  }
-}
-
-function adminPointPost(payload) {
-  return new Promise((resolve, reject) => {
-    const nonce = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
-    const frame = document.createElement('iframe');
-    const form = document.createElement('form');
-    const field = document.createElement('input');
-    frame.name = 'adminpoint_' + nonce.replace(/[^a-zA-Z0-9]/g, '');
-    frame.hidden = true;
-    form.method = 'POST'; form.action = GAS_URL; form.target = frame.name; form.hidden = true;
-    field.type = 'hidden'; field.name = 'packet';
-    field.value = JSON.stringify({ action: 'adminPointSubmit', payload, nonce, replyOrigin: location.origin });
-    form.append(field);
-    function cleanup() { clearTimeout(timer); window.removeEventListener('message', receive); form.remove(); frame.remove(); }
-    function receive(event) {
-      let host;
-      try { host = new URL(event.origin).hostname; } catch { return; }
-      if (host !== 'script.google.com' && host !== 'script.googleusercontent.com' && !host.endsWith('-script.googleusercontent.com')) return;
-      if (event.data?.channel !== 'admin-point-v1' || event.data.nonce !== nonce) return;
-      cleanup();
-      if (event.data.ok) resolve(event.data.data);
-      else reject(new Error(event.data.error || '저장 실패'));
-    }
-    const timer = setTimeout(() => { cleanup(); reject(new Error('서버 응답 시간 초과 (시트에 저장되었을 수도 있으니 기록을 확인하세요)')); }, 45000);
-    window.addEventListener('message', receive);
-    document.body.append(frame, form);
-    form.submit();
-  });
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const dialog = document.getElementById('reward-dialog');
-  const status = document.getElementById('reward-status');
-  const close = () => dialog.close();
-  document.getElementById('reward-close').addEventListener('click', close);
-  document.getElementById('reward-cancel').addEventListener('click', close);
-  document.getElementById('reward-type').addEventListener('change', renderAdminPointCriteria);
-  document.getElementById('reward-criterion').addEventListener('change', event => {
-    const item = adminPointCriteria.find(x => x.code === event.target.value);
-    document.getElementById('reward-score').value = item ? `${item.score}점` : '';
-  });
-  document.getElementById('reward-form').addEventListener('submit', async event => {
-    event.preventDefault();
-    const student = selectedTeacherStudent;
-    const code = document.getElementById('reward-criterion').value;
-    const item = adminPointCriteria.find(x => x.code === code);
-    if (!student || !item) { status.textContent = '학생과 항목을 선택하세요.'; return; }
-    if (!confirm(`${student.name} 학생에게 ${item.reason} (${item.score}점)을 등록할까요?`)) return;
-    const submit = document.getElementById('reward-submit');
-    submit.disabled = true; status.textContent = 'Google Sheets에 저장 중...';
-    try {
-      console.log('[상벌점 등록] 요청 시작', {
-        studentId: student.id,
-        code
-      });
-
-      const result = await adminPointPost({
-        studentId: student.id,
-        code,
-        note: document.getElementById('reward-note').value.trim()
-      });
-
-      console.log('[상벌점 등록] 서버 응답', result); status.textContent = `저장 완료 · 시트 ${result.row}행`;
-      await Promise.allSettled([
-        loadTeacherStudents(),
-        checkRecordsConnection(),
-        loadMonthlyStats(),
-        loadDailyPoints()
-      ]); alert('상벌점 등록 완료! Google Sheets의 점수 부여 시트를 확인하세요.');
-      close();
-    } catch (error) { status.textContent = '등록 실패: ' + error.message; }
-    finally { submit.disabled = false; }
-  });
-});
-
-
-
-/* ==========================================
-   상벌점 기준 조회 및 등록 팝업
-   Google Sheets: 점수기준
-========================================== */
-
-let activePointCriteria = [];
-
-// 1. Google Sheets에서 사용 중인 상벌점 기준 조회
-async function loadActivePointCriteria() {
-  const url = new URL(GAS_URL);
-  url.searchParams.set("action", "activeCriteria");
-
-  const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    throw new Error("상벌점 기준 서버 연결 실패");
-  }
-
-  const result = await response.json();
-
-  if (!result.ok || !Array.isArray(result.criteria)) {
-    throw new Error(
-      result.error || "상벌점 기준 조회 실패"
-    );
-  }
-
-  activePointCriteria = result.criteria;
-  return activePointCriteria;
-}
-
-// 2. 구분에 따라 항목 목록 표시
-function renderActivePointCriteria(type) {
-  const select = document.getElementById("reward-criterion");
-  const scoreInput = document.getElementById("reward-score");
-
-  if (!select || !scoreInput) return;
-
-  // 구분값의 공백을 제거하여 비교
-  const filtered = activePointCriteria.filter(item =>
-    String(item.type || "").trim() === String(type).trim()
-  );
-
-  console.log("전체 상벌점 기준:", activePointCriteria);
-  console.log("선택한 구분:", type);
-  console.log("필터링된 항목:", filtered);
-
-  select.replaceChildren(
-    new Option("항목을 선택하세요", "")
-  );
-
-  filtered.forEach(item => {
-    select.add(
-      new Option(
-        `${item.reason} (${item.score}점)`,
-        item.code
-      )
-    );
-  });
-
-  scoreInput.value = "";
-}
-
-// 3. 항목 선택 시 점수 자동 표시
-function initPointCriteriaEvents() {
-  const select = document.getElementById("reward-criterion");
-  const scoreInput = document.getElementById("reward-score");
-
-  if (!select || !scoreInput) return;
-
-  select.addEventListener("change", () => {
-    const selected = activePointCriteria.find(
-      item => item.code === select.value
-    );
-
-    scoreInput.value = selected
-      ? `${selected.score}점`
-      : "";
-  });
-}
-
-// 4. 학생 상세 / 등록 팝업 열기
-async function openRewardDialog(student) {
-  const dialog = document.getElementById("reward-dialog");
-
-  if (!dialog) {
-    alert("상벌점 등록 창을 찾을 수 없습니다.");
-    return;
-  }
-
-  // 학생 정보 표시
-  document.getElementById("reward-student-name").textContent =
-    student.name || student.studentName || "";
-
-  document.getElementById("reward-student-class").textContent =
-    `${student.grade}학년 ${student.classNo}반 ${student.number}번`;
-
-  document.getElementById("reward-student-id").value =
-    student.id || student.studentId || "";
-
-  // 비고 초기화
-  document.getElementById("reward-note").value = "";
-
-  // 사용 중인 기준 불러오기
-  try {
-    await loadActivePointCriteria();
-    renderActivePointCriteria("상점");
-  } catch (error) {
-    alert("상벌점 기준 조회 실패: " + error.message);
-    return;
-  }
-
-  dialog.showModal();
-}
-
-// 5. 페이지 로딩 후 이벤트 연결
-if (document.readyState === "loading") {
-  document.addEventListener(
-    "DOMContentLoaded",
-    initPointCriteriaEvents
-  );
-} else {
-  initPointCriteriaEvents();
-}
-
-/* ========================================
-   상벌점 통계
-======================================== */
-
-let statisticsData = null;
-
-async function loadPointStatistics() {
-  const year = document.getElementById("statistics-year").value;
-  const month = document.getElementById("statistics-month").value;
-  const status = document.getElementById("statistics-status");
-
-  status.textContent = "통계를 불러오는 중...";
-
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "pointStatistics");
-    url.searchParams.set("year", year);
-    url.searchParams.set("month", month);
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      throw new Error(data.error || "통계 조회 실패");
-    }
-
-    statisticsData = data;
-
-    document.getElementById("statistics-total").textContent =
-      `${data.totalDemerit}점`;
-
-    document.getElementById("statistics-count").textContent =
-      `${data.totalCount}건`;
-
-    document.getElementById("statistics-class-count").textContent =
-      `${data.classes.length}개 학급`;
-
-    renderStatisticsClasses(data.classes);
-    renderStatisticsStudents(data.students);
-
-    status.textContent = `${data.month} 통계 조회 완료`;
-
-  } catch (error) {
-    statisticsData = null;
-    status.textContent = "조회 실패: " + error.message;
-    console.error(error);
-  }
-}
-
-function renderStatisticsClasses(classes) {
-  const tbody = document.getElementById("statistics-class-body");
-
-  tbody.innerHTML = classes.length
-    ? classes.map(item => `
-      <tr>
-        <td>${item.rank}위</td>
-        <td>${item.grade}학년 ${item.classNo}반</td>
-        <td>${item.demerit}점</td>
-        <td>${item.count}건</td>
-      </tr>
-    `).join("")
-    : `<tr><td colspan="4">해당 월의 벌점 기록이 없습니다.</td></tr>`;
-}
-
-function renderStatisticsStudents(students) {
-  const tbody = document.getElementById("statistics-student-body");
-
-  tbody.innerHTML = students.length
-    ? students.map(item => `
-      <tr>
-        <td>${item.grade}</td>
-        <td>${item.classNo}</td>
-        <td>${item.number}</td>
-        <td>${escapeRecordHtml(item.name)}</td>
-        <td>${item.demerit}점</td>
-        <td>${item.count}건</td>
-      </tr>
-    `).join("")
-    : `<tr><td colspan="6">해당 월의 벌점 기록이 없습니다.</td></tr>`;
-}
-
-function downloadPointStatistics() {
-  if (!statisticsData) {
-    alert("먼저 통계를 조회하세요.");
-    return;
-  }
-
-  if (typeof XLSX === "undefined") {
-    alert("엑셀 라이브러리를 불러오지 못했습니다.");
-    return;
-  }
-
-  const workbook = XLSX.utils.book_new();
-
-  const classRows = statisticsData.classes.map(item => ({
-    "순위": item.rank,
-    "학년": item.grade,
-    "반": item.classNo,
-    "벌점 합계": item.demerit,
-    "벌점 건수": item.count
-  }));
-
-  const studentRows = statisticsData.students.map(item => ({
-    "학년": item.grade,
-    "반": item.classNo,
-    "번호": item.number,
-    "이름": item.name,
-    "벌점 합계": item.demerit,
-    "벌점 건수": item.count
-  }));
-
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet(classRows, {
-      header: ["순위", "학년", "반", "벌점 합계", "벌점 건수"]
-    }),
-    "학급별 통계"
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet(studentRows, {
-      header: ["학년", "반", "번호", "이름", "벌점 합계", "벌점 건수"]
-    }),
-    "학생별 통계"
-  );
-
-  XLSX.writeFile(
-    workbook,
-    `상벌점통계_${statisticsData.month}.xlsx`
-  );
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const year = document.getElementById("statistics-year");
-  const month = document.getElementById("statistics-month");
-
-  if (!year || !month) return;
-
-  const now = new Date();
-
-  year.value = now.getFullYear();
-  month.value = now.getMonth() + 1;
-
-  document.getElementById("statistics-search")
-    ?.addEventListener("click", loadPointStatistics);
-
-  document.getElementById("statistics-download")
-    ?.addEventListener("click", downloadPointStatistics);
-
-  loadPointStatistics();
-});
-
-/* ========================================
-   홈 - 최근 14일 상벌점 그래프
-======================================== */
-
-async function loadDailyPoints() {
-  const container = document.getElementById("records-chart");
-  if (!container) return;
-
-  container.innerHTML =
-    '<p class="empty-message">그래프 데이터를 불러오는 중입니다.</p>';
-
-  try {
-    const url = new URL(GAS_URL);
-    url.searchParams.set("action", "dailyPoints");
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.ok || !Array.isArray(data.days)) {
-      throw new Error(data.error || "그래프 데이터 형식 오류");
-    }
-
-    renderDailyPoints(data.days);
-
-  } catch (error) {
-    console.error("14일 그래프 조회 오류:", error);
-
-    container.innerHTML =
-      '<p class="empty-message">그래프를 불러오지 못했습니다.</p>';
-  }
-}
-
-function renderDailyPoints(days) {
-  const container = document.getElementById("records-chart");
-  if (!container) return;
-
-  const maxPoints = Math.max(
-    1,
-    ...days.flatMap(day => [
-      Number(day.merit) || 0,
-      Number(day.demerit) || 0
-    ])
-  );
-
-  const bars = days.map(day => {
-    const merit = Number(day.merit) || 0;
-    const demerit = Number(day.demerit) || 0;
-
-    const meritHeight = merit / maxPoints * 100;
-    const demeritHeight = demerit / maxPoints * 100;
-
-    const label = day.date.slice(5).replace("-", "/");
-
-    return `
-      <div class="chart-day">
-        <div class="chart-day-bars">
-          <div
-            class="chart-bar reward"
-            style="height:${meritHeight}%"
-            title="${label} 상점 ${merit}점"
-          ></div>
-
-          <div
-            class="chart-bar penalty"
-            style="height:${demeritHeight}%"
-            title="${label} 벌점 ${demerit}점"
-          ></div>
-        </div>
-
-        <span class="chart-label">${label}</span>
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생활지도 관리 | 홈</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- 사이드바 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>생활지도 관리</h1>
+        <p>상벌점 관리 시스템</p>
       </div>
-    `;
-  }).join("");
 
-  container.innerHTML = `
-    <div class="chart-legend">
-      <span class="legend-item">
-        <span class="legend-dot reward"></span>
-        상점
-      </span>
+      <nav class="sidebar-nav">
+        <a href="#home" class="nav-link active">홈</a>
+        <a href="#students" class="nav-link">대상자 관리</a>
+        <a href="#records" class="nav-link">기록 내역</a>
+        <a href="#criteria" class="nav-link">상벌점 기준</a>
+        <a href="#prefects" class="nav-link">선도부원 관리</a>
+        <a href="#statistics" class="nav-link">상벌점 통계</a>
+      </nav>
+    </aside>
 
-      <span class="legend-item">
-        <span class="legend-dot penalty"></span>
-        벌점
-      </span>
+    <!-- 메인 화면 -->
+    <div class="main-layout">
+      <header class="topbar">
+        <div>
+          <span class="breadcrumb">생활지도 관리 / 홈</span>
+        </div>
+      </header>
+
+      <!--전체 화면-->
+      <main class="main-content">
+        <!--홈 페이지-->
+        <section id="home-page">
+          <section class="page-heading">
+            <div>
+              <p class="eyebrow">DASHBOARD</p>
+              <h2>홈</h2>
+              <p>학교 상벌점 현황을 확인할 수 있습니다.</p>
+            </div>
+            <span id="last-updated">업데이트 전</span>
+          </section>
+          <!-- 주요 통계 -->
+          <section class="stats-grid" aria-label="주요 통계">
+            <article class="stat-card">
+              <h3>전체 학생</h3><strong id="student-count">-</strong>
+              <p>현재 등록된 학생 수</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 상점</h3><strong id="monthly-reward">-</strong>
+              <p>이번 달 누적 상점</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 벌점</h3><strong id="monthly-penalty">-</strong>
+              <p>이번 달 누적 벌점</p>
+            </article>
+            <article class="stat-card">
+              <h3>이번 달 기록</h3><strong id="monthly-record-count">-</strong>
+              <p>이번 달 등록된 기록 수</p>
+            </article>
+          </section>
+
+          <section class="panel chart-panel"><!-- 최근 14일 그래프 -->
+            <div class="panel-heading">
+              <div>
+                <h3>최근 14일 상벌점 현황</h3>
+                <p>일자별 상점 및 벌점 변화를 확인합니다.</p>
+              </div>
+            </div>
+            <div id="records-chart" class="chart-area">
+              <p class="empty-message">그래프 데이터를 불러오는 중입니다.</p>
+            </div>
+          </section>
+        </section>
+
+        <!-- 기록 내역 페이지 -->
+        <section id="records-page" class="records-page" hidden>
+          <div class="records-page-header"> <!-- 페이지 제목 -->
+            <div>
+              <p class="records-eyebrow">STUDENT RECORDS</p>
+              <h2>기록 내역</h2>
+              <p>전체 학생의 상벌점 누계 현황을 조회합니다.</p>
+            </div>
+
+            <button type="button" id="records-refresh" class="records-refresh-btn">
+              새로고침
+            </button>
+          </div>
+
+          <!-- 검색 및 필터 -->
+          <section class="records-filter-panel">
+            <div class="records-filter-heading">
+              <h3>학생 조회</h3>
+              <p>이름 또는 학년·반을 기준으로 검색할 수 있습니다.</p>
+            </div>
+
+            <div class="records-filter-row">
+              <div class="records-filter-field records-search-field">
+                <label for="records-search">학생 검색</label>
+                <input type="search" id="records-search" placeholder="학생 이름 검색">
+              </div>
+
+              <div class="records-filter-field">
+                <label for="records-grade">학년</label>
+                <select id="records-grade">
+                  <option value="">전체 학년</option>
+                  <option value="1">1학년</option>
+                  <option value="2">2학년</option>
+                  <option value="3">3학년</option>
+                </select>
+              </div>
+
+              <div class="records-filter-field">
+                <label for="records-class">반</label>
+                <select id="records-class">
+                  <option value="">전체 반</option>
+                </select>
+              </div>
+
+              <button type="button" id="records-search-btn" class="records-search-btn">
+                조회
+              </button>
+
+              <button type="button" id="records-reset-btn" class="records-reset-btn">
+                초기화
+              </button>
+            </div>
+          </section>
+
+
+          <!-- 상벌점 부여 기록 -->
+          <section class="records-list-panel">
+
+            <div class="records-list-heading">
+              <div>
+                <h3>상벌점 부여 기록</h3>
+                <p>최근 등록된 기록부터 표시됩니다.</p>
+              </div>
+
+              <span id="records-result-count" class="records-count">
+                조회 결과 0건
+              </span>
+            </div>
+
+            <div class="records-table-wrap">
+              <table class="student-records-table">
+                <thead>
+                  <tr>
+                    <th>학년도</th>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                    <th>항목코드</th>
+                    <th>점수</th>
+                    <th>요청일시</th>
+                    <th>요청자ID</th>
+                    <th>승인상태</th>
+                  </tr>
+                </thead>
+
+                <tbody id="student-records-body">
+                  <tr>
+                    <td colspan="10" class="records-empty">
+                      데이터를 불러오는 중입니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="records-list-footer">
+              <p>Google Sheets '점수 부여' 기준</p>
+              <span id="records-last-updated">업데이트 전</span>
+            </div>
+
+          </section>
+
+
+          <!-- 점수 계산 안내 -->
+          <section class="records-guide">
+            <h3>점수 계산 안내</h3>
+
+            <div class="records-guide-grid">
+              <div>
+                <strong>개인누계</strong>
+                <p>상점 합계 + 벌점 합계 + 상쇄점</p>
+              </div>
+
+              <div>
+                <strong>학급반영점수</strong>
+                <p>개인누계 − 상쇄점</p>
+              </div>
+            </div>
+
+            <p class="records-guide-note">
+              상쇄점은 개인누계에 포함되지만 학급반영점수에는 반영되지 않습니다.
+            </p>
+          </section>
+        </section>
+
+        <!-- 대상자 관리 페이지 -->
+        <section id="students-page" class="students-page" hidden>
+
+          <div class="students-page-header">
+            <div>
+              <p class="eyebrow">STUDENT MANAGEMENT</p>
+              <h2>대상자 관리</h2>
+              <p>학생별 상벌점 현황을 확인하고 상벌점을 등록합니다.</p>
+            </div>
+
+            <button type="button" id="students-refresh" class="students-btn-outline">
+              새로고침
+            </button>
+          </div>
+
+          <!-- 검색 -->
+          <section class="students-panel">
+            <div class="students-panel-heading">
+              <h3>학생 검색</h3>
+              <p>이름 또는 학년·반·번호로 학생을 조회합니다.</p>
+            </div>
+
+            <div class="students-filters">
+              <div class="students-field students-name-field">
+                <label for="students-search">이름</label>
+                <input type="search" id="students-search" placeholder="학생 이름 입력">
+              </div>
+
+              <div class="students-field">
+                <label for="students-grade">학년</label>
+                <select id="students-grade">
+                  <option value="">전체 학년</option>
+                  <option value="1">1학년</option>
+                  <option value="2">2학년</option>
+                  <option value="3">3학년</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="students-class">반</label>
+                <select id="students-class">
+                  <option value="">전체 반</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="students-number">번호</label>
+                <input type="number" id="students-number" min="1" placeholder="전체">
+              </div>
+
+              <button type="button" id="students-search-btn" class="students-btn-primary">
+                조회
+              </button>
+
+              <button type="button" id="students-reset-btn" class="students-btn-outline">
+                초기화
+              </button>
+            </div>
+          </section>
+
+          <!-- 학생 목록 -->
+          <section class="students-panel">
+            <div class="students-list-heading">
+              <div>
+                <h3>전체 학생 목록</h3>
+                <p>학생별 상점·벌점·상쇄점 현황</p>
+              </div>
+
+              <span id="students-result-count" class="students-result-count">
+                조회 결과 0명
+              </span>
+            </div>
+
+            <div class="students-table-wrap">
+              <table class="students-table">
+                <thead>
+                  <tr>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                    <th>상점</th>
+                    <th>벌점</th>
+                    <th>상쇄점</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+
+                <tbody id="students-table-body">
+                  <tr>
+                    <td colspan="8" class="students-empty">
+                      학생 데이터를 불러오는 중입니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+
+
+        <!-- 상벌점 기준 페이지 -->
+        <section id="criteria-page" class="criteria-page" hidden>
+
+          <div class="criteria-heading">
+            <div>
+              <h1>상벌점 기준</h1>
+              <p>상점·벌점·상쇄점 기준을 조회하고 엑셀로 등록합니다.</p>
+            </div>
+            <button type="button" id="criteria-refresh" class="button secondary">
+              새로고침
+            </button>
+          </div>
+
+          <!-- 기준 업로드 -->
+          <section class="criteria-upload-card">
+            <div class="criteria-upload-info">
+              <h2>상벌점 기준 업로드</h2>
+              <p>엑셀 파일을 선택한 후 미리보기를 확인하고 등록합니다.</p>
+            </div>
+
+            <div class="criteria-upload-controls">
+              <label for="criteria-start-date">적용 시작일</label>
+              <input type="date" id="criteria-start-date">
+
+              <input type="file" id="criteria-excel" accept=".xlsx,.xls" hidden>
+
+              <button type="button" id="criteria-upload-btn">
+                엑셀 파일 선택
+              </button>
+            </div>
+
+            <p id="criteria-file-name"></p>
+            <p id="criteria-upload-status" role="status"></p>
+          </section>
+
+          <!-- 업로드 미리보기 -->
+          <section id="criteria-preview" class="criteria-preview" hidden>
+            <div class="criteria-section-heading">
+              <h2>업로드 미리보기</h2>
+              <span id="criteria-preview-count"></span>
+            </div>
+
+            <div class="criteria-table-wrap">
+              <table class="criteria-table">
+                <thead>
+                  <tr>
+                    <th>구분</th>
+                    <th>사유</th>
+                    <th>점수</th>
+                    <th>적용시작일</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-preview-body"></tbody>
+              </table>
+            </div>
+
+            <div class="criteria-preview-actions">
+              <button type="button" id="criteria-preview-cancel">
+                취소
+              </button>
+              <button type="button" id="criteria-upload-submit">
+                기준 등록
+              </button>
+            </div>
+          </section>
+
+          <!-- 구분별 탭 -->
+          <div class="criteria-type-tabs">
+            <button type="button" class="criteria-type-tab active" data-criteria-type="상점">상점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="벌점">벌점</button>
+            <button type="button" class="criteria-type-tab" data-criteria-type="상쇄점">상쇄점</button>
+          </div>
+
+          <!-- 등록된 기준 목록 -->
+          <section class="criteria-list-section">
+            <div class="criteria-section-heading">
+              <div>
+                <h2 id="criteria-list-title">상점 기준</h2>
+                <p id="criteria-result-count">조회 결과 0개</p>
+              </div>
+
+              <select id="criteria-date-filter">
+                <option value="all">전체 적용일</option>
+              </select>
+            </div>
+
+            <div class="criteria-table-wrap">
+              <table class="criteria-table">
+                <thead>
+                  <tr>
+                    <th>항목코드</th>
+                    <th>사유</th>
+                    <th>점수</th>
+                    <th>적용시작일</th>
+                    <th>사용여부</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-list-body">
+                  <tr>
+                    <td colspan="5">기준을 불러오는 중입니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+
+
+        <!-- 선도부원 관리 페이지 -->
+        <section id="prefects-page" class="prefects-page" hidden>
+
+          <div class="prefects-page-header">
+            <div>
+              <h1>선도부원 관리</h1>
+              <p>선도부원 명단과 로그인 인증 상태를 관리합니다.</p>
+            </div>
+          </div>
+
+          <section id="statistics-page" hidden>
+            <div class="page-header">
+              <div>
+                <h1>상벌점 통계</h1>
+                <p>월별 벌점 현황과 학급별 순위를 조회합니다.</p>
+              </div>
+            </div>
+
+            <div class="statistics-toolbar">
+              <input type="number" id="statistics-year" min="2000" max="2100">
+
+              <select id="statistics-month">
+                <option value="1">1월</option>
+                <option value="2">2월</option>
+                <option value="3">3월</option>
+                <option value="4">4월</option>
+                <option value="5">5월</option>
+                <option value="6">6월</option>
+                <option value="7">7월</option>
+                <option value="8">8월</option>
+                <option value="9">9월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+              </select>
+
+              <button class="button primary" id="statistics-search">
+                조회
+              </button>
+
+              <button class="button secondary" id="statistics-download">
+                엑셀 다운로드
+              </button>
+            </div>
+
+            <p id="statistics-status"></p>
+
+            <div class="statistics-summary">
+              <div class="statistics-card">
+                <span>벌점 합계</span>
+                <strong id="statistics-total">-</strong>
+              </div>
+
+              <div class="statistics-card">
+                <span>벌점 기록 수</span>
+                <strong id="statistics-count">-</strong>
+              </div>
+
+              <div class="statistics-card">
+                <span>벌점 발생 학급</span>
+                <strong id="statistics-class-count">-</strong>
+              </div>
+            </div>
+
+            <div class="statistics-panel">
+              <h2>학급별 벌점 순위</h2>
+              <div class="statistics-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>순위</th>
+                      <th>학급</th>
+                      <th>벌점 합계</th>
+                      <th>기록 수</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statistics-class-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="statistics-panel">
+              <h2>학생별 벌점 명단</h2>
+              <div class="statistics-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>학년</th>
+                      <th>반</th>
+                      <th>번호</th>
+                      <th>이름</th>
+                      <th>벌점 합계</th>
+                      <th>기록 수</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statistics-student-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 명단 업로드 -->
+          <div class="prefects-upload-card">
+            <div class="prefects-upload-top">
+              <div>
+                <h2>선도부원 명단 업로드</h2>
+                <p>
+                  엑셀 파일을 업로드하면 새로운 선도부원 명단을
+                  등록할 수 있습니다.
+                </p>
+              </div>
+
+              <label for="prefects-file" class="prefects-file-button">
+                엑셀 파일 선택
+              </label>
+
+              <input type="file" id="prefects-file" accept=".xlsx,.xls" hidden />
+            </div>
+
+            <div id="prefects-upload-preview" class="prefects-upload-preview" hidden>
+              <div class="prefects-upload-summary">
+                <span id="prefects-selected-file"></span>
+                <strong id="prefects-upload-count"></strong>
+              </div>
+
+              <div class="prefects-upload-actions">
+                <button id="prefects-cancel-upload" type="button">
+                  취소
+                </button>
+                <button id="prefects-confirm-upload" type="button">
+                  명단 등록
+                </button>
+                <p id="prefects-upload-message" role="status" aria-live="polite" hidden>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 명단 목록 -->
+          <div class="prefects-list-card">
+            <div class="prefects-list-header">
+              <div>
+                <h2>선도부원 명단</h2>
+                <p id="prefects-result-count">전체 0명</p>
+              </div>
+
+              <div class="prefects-filters">
+                <select id="prefects-year-filter">
+                  <option value="all">전체 학년도</option>
+                </select>
+
+                <select id="prefects-status-filter">
+                  <option value="all">전체 상태</option>
+                  <option value="사용">사용</option>
+                  <option value="종료">종료</option>
+                </select>
+
+                <input type="search" id="prefects-search" placeholder="이름 검색" />
+              </div>
+            </div>
+
+            <div class="prefects-table-wrap">
+              <table class="prefects-table">
+                <thead>
+                  <thead>
+                    <tr>
+                      <th>학년</th>
+                      <th>반</th>
+                      <th>번호</th>
+                      <th>이름</th>
+                      <th>인증키</th>
+                      <th>사용자 ID</th>
+                    </tr>
+                  </thead>
+                </thead>
+
+                <tbody id="prefects-table-body">
+                  <tr>
+                    <td colspan="8" class="prefects-empty">
+                      등록된 선도부원이 없습니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+
+
+        <!-- 상점 부여 팝업 -->
+        <dialog id="reward-dialog" class="reward-dialog">
+          <form id="reward-form" class="reward-form">
+
+            <div class="reward-dialog-header">
+              <div>
+                <h3>학생 상세 / 상벌점 등록</h3>
+                <p>Google Sheets 기준에서 항목을 선택해 등록합니다.</p>
+              </div>
+
+              <button type="button" id="reward-close" class="reward-close" aria-label="닫기">×</button>
+            </div>
+
+            <div class="reward-dialog-body">
+
+              <div class="reward-student-info">
+                <span>부여 대상</span>
+                <strong id="reward-student-name">-</strong>
+                <p id="reward-student-class">-</p>
+                <p id="reward-student-points">-</p>
+              </div>
+
+              <!-- JS에서 선택 학생의 식별값 설정 -->
+              <input type="hidden" id="reward-student-id">
+
+              <div class="students-field">
+                <label for="reward-type">구분</label>
+                <select id="reward-type" required>
+                  <option value="상점">상점</option>
+                  <option value="벌점">벌점</option>
+                  <option value="상쇄점">상쇄점</option>
+                </select>
+              </div>
+              <div class="students-field">
+                <label for="reward-criterion">상벌점 항목</label>
+                <select id="reward-criterion" required>
+                  <option value="">상점 항목 선택</option>
+                </select>
+              </div>
+
+              <div class="students-field">
+                <label for="reward-score">부여 점수</label>
+                <input type="text" id="reward-score" placeholder="항목 선택 시 표시" readonly>
+              </div>
+
+              <p id="reward-status" class="point-status" role="status" aria-live="polite"></p>
+              <div class="students-field">
+                <label for="reward-note">비고 (선택)</label>
+                <textarea id="reward-note" rows="3" placeholder="필요한 경우 입력"></textarea>
+              </div>
+
+            </div>
+
+            <div class="reward-dialog-footer">
+              <button type="button" id="reward-cancel" class="students-btn-outline">
+                취소
+              </button>
+
+              <button type="submit" id="reward-submit" class="students-btn-primary">
+                등록하기
+              </button>
+            </div>
+
+          </form>
+        </dialog>
+
+      </main>
     </div>
+  </div>
 
-    <div class="chart-bars">
-      ${bars}
-    </div>
-  `;
-}
+</body>
 
-document.addEventListener("DOMContentLoaded", loadDailyPoints);
+</html>
